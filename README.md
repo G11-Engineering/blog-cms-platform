@@ -77,7 +77,7 @@ graph TD
 ```
 
 
-## Deployment Games
+## Deployment Diagram
 
 
 ```mermaid
@@ -115,5 +115,75 @@ graph TD
     StageDeploy[CI/CD Deployment] --> Staging
     StageDeploy --> Production
 
+
+```
+
+## Use Case Diagram
+```mermaid
+
+%% CMS Use Case Diagram
+graph TD
+    %% Actors
+    Author[Author]
+    Editor[Editor]
+    Admin[Admin]
+    Reader[Reader]
+
+    %% Use Cases
+    CreateArticle[Create Article]
+    EditArticle[Edit Article]
+    SchedulePublish[Schedule & Publish Article]
+    ApproveArticle[Approve Article]
+    ManageUsers[Manage Users & Roles]
+    CommentArticle[Comment on Article]
+    SearchContent[Search Content]
+    ManageCategories[Manage Categories & Tags]
+
+    %% Relationships
+    Author --> CreateArticle
+    Author --> EditArticle
+    Author --> SchedulePublish
+
+    Editor --> ApproveArticle
+    Editor --> EditArticle
+
+    Admin --> ManageUsers
+    Admin --> ManageCategories
+
+    Reader --> CommentArticle
+    Reader --> SearchContent
+
+
+```
+
+
+## Sequence Diagram
+```mermaid
+sequenceDiagram
+    actor Author
+    participant WebApp
+    participant APIGateway
+    participant UserSvc
+    participant ContentSvc
+    participant MediaSvc
+    participant CatTagSvc
+
+    Author->>WebApp: Login
+    WebApp->>APIGateway: Authenticate Request
+    APIGateway->>UserSvc: Validate User
+    UserSvc-->>APIGateway: Auth OK
+    APIGateway-->>WebApp: Auth Success
+
+    Author->>WebApp: Create Article + Upload Media
+    WebApp->>APIGateway: API Call
+    APIGateway->>ContentSvc: Save Article
+    APIGateway->>MediaSvc: Save Media
+    APIGateway->>CatTagSvc: Assign Categories/Tags
+
+    ContentSvc-->>APIGateway: Article Saved
+    MediaSvc-->>APIGateway: Media Saved
+    CatTagSvc-->>APIGateway: Tags Assigned
+    APIGateway-->>WebApp: Confirmation
+    WebApp-->>Author: Article Created Successfully
 
 ```
