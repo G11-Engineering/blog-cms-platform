@@ -1,10 +1,11 @@
 # blog-cms-platform
 
 ```mermaid
+
 graph TD
     %% Clients
     User[Users: Authors, Editors, Admins, Readers] --> Browser[Web Browser]
-    Browser --> WebApp[Web Application Layer]
+    Browser --> WebApp[Web Application Layer (Scalable based on user traffic/load)]
 
     %% API Gateway
     WebApp --> APIGateway[API Gateway / Load Balancer]
@@ -35,23 +36,30 @@ graph TD
     %% CI/CD Pipeline
     subgraph CI/CD Pipeline
         GitRepo[GitHub Repo: Source Code]
+        CICD[CI/CD Tool: Jenkins/GitHub Actions]
         Stage1[Stage 1: Monitor & Trigger]
         Stage2[Stage 2: Build & Containerize]
         Stage3[Stage 3: Security Scans]
+        Fail[Fail Pipeline & Notify]
         Stage4[Stage 4: Deploy to Staging]
         Stage5[Stage 5: Manual Approval]
         Stage6[Stage 6: Production Deployment]
+        DeploymentNote[Canary/Blue-Green Deployment with Auto Rollback]
 
-        GitRepo --> Stage1 --> Stage2 --> Stage3 --> Stage4 --> Stage5 --> Stage6
+        GitRepo --> CICD --> Stage1 --> Stage2 --> Stage3
+        Stage3 --> Fail
+        Stage3 --> Stage4
+        Stage4 --> Stage5 --> Stage6 --> DeploymentNote
     end
 
     %% Kubernetes Infrastructure
     subgraph Kubernetes
-        Staging[Staging Cluster]
-        Production[Production Cluster]
+        Staging[Staging Cluster: ArgoCD for GitOps]
+        Production[Production Cluster: Canary/Blue-Green, Zero Trust]
     end
     Stage4 --> Staging
     Stage6 --> Production
+    DeploymentNote --> Production
 
     %% Monitoring & Logging
     Prometheus[Prometheus: Monitor CMS & K8s] 
@@ -61,9 +69,8 @@ graph TD
     OpenSearch --> Staging
     OpenSearch --> Production
 
-    %% Notes (simple)
+    %% Notes
     Note1[Zero Trust: AuthN/AuthZ, Least Privilege] --> APIGateway
     Note2[Git Repos for Source Code] --> GitRepo
     Note3[Deployment Guide, Presentation/Demo] --> Production
-
 ```
