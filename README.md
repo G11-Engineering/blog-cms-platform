@@ -1,23 +1,20 @@
 # blog-cms-platform
-graph TD
-    %% Title
-    classDef title fill:#FFFFFF,stroke:#000000;
-    T[Blog/CMS Management System Architecture]:::title
 
+graph TD
     %% Clients
-    U[Users<br>Authors, Editors, Admins, Readers] --> B[Web Browser]
-    B --> W[Web Application Layer<br>Scalable based on user traffic/load]
+    U[Users: Authors, Editors, Admins, Readers] --> B[Web Browser]
+    B --> W[Web Application Layer]
 
     %% API Gateway
-    W --> A[API Gateway / Load Balancer<br>Handles requests, authentication]
+    W --> A[API Gateway / Load Balancer]
 
     %% Microservices
     subgraph Microservices
-        US[User Service<br>Authentication, Profiles, Roles]
-        CS[Content Service<br>CRUD, Drafts, Scheduling, Versioning]
-        MS[Media Service<br>File Uploads (Images, Videos, Docs)]
-        CTS[Category & Tag Service<br>Organization, Browse/Search]
-        CMS[Comment Service<br>Comments, Replies, Moderation]
+        US[User Service: Auth, Profiles, Roles]
+        CS[Content Service: CRUD, Drafts, Scheduling, Versioning]
+        MS[Media Service: File Uploads]
+        CTS[Category & Tag Service: Organization, Browse/Search]
+        CMS[Comment Service: Comments, Replies, Moderation]
     end
 
     %% Databases
@@ -36,44 +33,44 @@ graph TD
 
     %% CI/CD Pipeline
     subgraph CI/CD Pipeline
-        GR[GitHub Repo<br>Source Code]
-        CT[CI/CD Tool<br>e.g., Jenkins]
+        GR[GitHub Repo: Source Code]
         C1[Stage 1: Monitor & Trigger]
-        C2[Stage 2: Build & Containerize<br>Build Docker Images]
-        C3[Stage 3: Security Scans<br>Vulnerability Scans]
-        C4[Stage 4: Deploy to Staging<br>ArgoCD, Smoke Tests]
+        C2[Stage 2: Build & Containerize]
+        C3[Stage 3: Security Scans]
+        C4[Stage 4: Deploy to Staging]
         C5[Stage 5: Manual Approval]
-        C6[Stage 6: Production Deployment<br>Canary/Blue-Green]
+        C6[Stage 6: Production Deployment]
         GR --> C1 --> C2 --> C3 --> C4 --> C5 --> C6
-        C3 --> C4 : If Pass
-        C4 --> C5 : If Tests Pass
-        C5 --> C6 : On Approval
     end
 
     %% Kubernetes Infrastructure
     subgraph Kubernetes Infrastructure
-        SK[Staging Cluster<br>ArgoCD for GitOps]
-        PK[Production Cluster<br>Canary/Blue-Green, Zero Trust]
+        SK[Staging Cluster]
+        PK[Production Cluster]
     end
-    C4 --> SK : Deploy
-    C6 --> PK : Deploy
+    C4 --> SK
+    C6 --> PK
 
     %% Monitoring & Logging
-    P[Prometheus<br>Monitor CMS & K8s]
-    O[OpenSearch Stack<br>Log Management]
+    P[Prometheus: Monitor CMS & K8s]
+    O[OpenSearch Stack: Log Management]
     P --> SK
     P --> PK
-    P --> Microservices : Via Exporters
-    O --> SK : Logs
-    O --> PK : Logs
-    O --> Microservices : App Logs
+    P --> US
+    P --> CS
+    P --> MS
+    P --> CTS
+    P --> CMS
 
-    %% Styling
-    classDef default fill:#E6F3FF,stroke:#4682B4;
-    classDef actor fill:#FFD700,stroke:#B8860B;
-    classDef db fill:#98FB98,stroke:#228B22;
-    classDef k8s fill:#F0E68C,stroke:#DAA520;
+    O --> SK
+    O --> PK
+    O --> US
+    O --> CS
+    O --> MS
+    O --> CTS
+    O --> CMS
 
-    class U,B actor;
-    class UDB,CDB,MDB,CTDB,CMDB db;
-    class SK,PK k8s;
+    %% Notes
+    N1[Zero Trust: AuthN/AuthZ, Least Privilege] --> A
+    N2[Git Repos for Source Code] --> GR
+    N3[Deployment Guide, Presentation/Demo] --> PK
