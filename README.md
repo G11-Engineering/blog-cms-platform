@@ -75,3 +75,45 @@ graph TD
 
 
 ```
+
+
+## Deployment Games
+
+
+```mermaid
+
+graph TD
+    %% Clients
+    User[Users] --> Browser[Web Browser]
+    Browser --> WebApp[Web Application Layer<br>Scalable]
+
+    %% API Gateway
+    WebApp --> APIGateway[API Gateway / Load Balancer]
+
+    %% Microservices
+    subgraph Microservices
+        UserSvc[User Service]
+        ContentSvc[Content Service]
+        MediaSvc[Media Service]
+        CatTagSvc[Category & Tag Service]
+        CommentSvc[Comment Service]
+    end
+
+    %% Databases
+    UserSvc --> UDB[(User DB)]
+    ContentSvc --> CDB[(Content DB)]
+    MediaSvc --> MDB[(Media DB)]
+    CatTagSvc --> CTDB[(Cat/Tag DB)]
+    CommentSvc --> CMDB[(Comment DB)]
+
+    %% Kubernetes
+    subgraph Kubernetes
+        Staging[Staging Cluster<br>ArgoCD GitOps]
+        Production[Production Cluster<br>Canary/Blue-Green, Zero Trust]
+    end
+
+    StageDeploy[CI/CD Deployment] --> Staging
+    StageDeploy --> Production
+
+
+```
