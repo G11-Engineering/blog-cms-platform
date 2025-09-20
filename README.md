@@ -1,11 +1,10 @@
 # blog-cms-platform
 
 ```mermaid
-
 graph TD
     %% Clients
     User[Users: Authors, Editors, Admins, Readers] --> Browser[Web Browser]
-    Browser --> WebApp[Web Application Layer (Scalable based on user traffic/load)]
+    Browser --> WebApp[Web Application Layer<br>Scalable based on user traffic/load]
 
     %% API Gateway
     WebApp --> APIGateway[API Gateway / Load Balancer]
@@ -44,7 +43,7 @@ graph TD
         Stage4[Stage 4: Deploy to Staging]
         Stage5[Stage 5: Manual Approval]
         Stage6[Stage 6: Production Deployment]
-        DeploymentNote[Canary/Blue-Green Deployment with Auto Rollback]
+        DeploymentNote[Canary/Blue-Green Deployment<br>Auto Rollback]
 
         GitRepo --> CICD --> Stage1 --> Stage2 --> Stage3
         Stage3 --> Fail
@@ -54,8 +53,8 @@ graph TD
 
     %% Kubernetes Infrastructure
     subgraph Kubernetes
-        Staging[Staging Cluster: ArgoCD for GitOps]
-        Production[Production Cluster: Canary/Blue-Green, Zero Trust]
+        Staging[Staging Cluster<br>ArgoCD for GitOps]
+        Production[Production Cluster<br>Canary/Blue-Green, Zero Trust]
     end
     Stage4 --> Staging
     Stage6 --> Production
@@ -73,4 +72,6 @@ graph TD
     Note1[Zero Trust: AuthN/AuthZ, Least Privilege] --> APIGateway
     Note2[Git Repos for Source Code] --> GitRepo
     Note3[Deployment Guide, Presentation/Demo] --> Production
+
+
 ```
