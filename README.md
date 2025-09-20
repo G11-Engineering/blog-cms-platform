@@ -1,76 +1,69 @@
 # blog-cms-platform
 
+```mermaid
 graph TD
     %% Clients
-    U[Users: Authors, Editors, Admins, Readers] --> B[Web Browser]
-    B --> W[Web Application Layer]
+    User[Users: Authors, Editors, Admins, Readers] --> Browser[Web Browser]
+    Browser --> WebApp[Web Application Layer]
 
     %% API Gateway
-    W --> A[API Gateway / Load Balancer]
+    WebApp --> APIGateway[API Gateway / Load Balancer]
 
     %% Microservices
     subgraph Microservices
-        US[User Service: Auth, Profiles, Roles]
-        CS[Content Service: CRUD, Drafts, Scheduling, Versioning]
-        MS[Media Service: File Uploads]
-        CTS[Category & Tag Service: Organization, Browse/Search]
-        CMS[Comment Service: Comments, Replies, Moderation]
+        UserSvc[User Service: Auth, Profiles, Roles]
+        ContentSvc[Content Service: CRUD, Drafts, Scheduling, Versioning]
+        MediaSvc[Media Service: File Uploads]
+        CatTagSvc[Category & Tag Service: Organization, Browse/Search]
+        CommentSvc[Comment Service: Comments, Replies, Moderation]
     end
 
     %% Databases
-    US --> UDB[(User DB)]
-    CS --> CDB[(Content DB)]
-    MS --> MDB[(Media DB)]
-    CTS --> CTDB[(Cat/Tag DB)]
-    CMS --> CMDB[(Comment DB)]
+    UserSvc --> UDB[(User DB)]
+    ContentSvc --> CDB[(Content DB)]
+    MediaSvc --> MDB[(Media DB)]
+    CatTagSvc --> CTDB[(Cat/Tag DB)]
+    CommentSvc --> CMDB[(Comment DB)]
 
     %% Connections
-    A --> US
-    A --> CS
-    A --> MS
-    A --> CTS
-    A --> CMS
+    APIGateway --> UserSvc
+    APIGateway --> ContentSvc
+    APIGateway --> MediaSvc
+    APIGateway --> CatTagSvc
+    APIGateway --> CommentSvc
 
     %% CI/CD Pipeline
     subgraph CI/CD Pipeline
-        GR[GitHub Repo: Source Code]
-        C1[Stage 1: Monitor & Trigger]
-        C2[Stage 2: Build & Containerize]
-        C3[Stage 3: Security Scans]
-        C4[Stage 4: Deploy to Staging]
-        C5[Stage 5: Manual Approval]
-        C6[Stage 6: Production Deployment]
-        GR --> C1 --> C2 --> C3 --> C4 --> C5 --> C6
+        GitRepo[GitHub Repo: Source Code]
+        Stage1[Stage 1: Monitor & Trigger]
+        Stage2[Stage 2: Build & Containerize]
+        Stage3[Stage 3: Security Scans]
+        Stage4[Stage 4: Deploy to Staging]
+        Stage5[Stage 5: Manual Approval]
+        Stage6[Stage 6: Production Deployment]
+
+        GitRepo --> Stage1 --> Stage2 --> Stage3 --> Stage4 --> Stage5 --> Stage6
     end
 
     %% Kubernetes Infrastructure
-    subgraph Kubernetes Infrastructure
-        SK[Staging Cluster]
-        PK[Production Cluster]
+    subgraph Kubernetes
+        Staging[Staging Cluster]
+        Production[Production Cluster]
     end
-    C4 --> SK
-    C6 --> PK
+    Stage4 --> Staging
+    Stage6 --> Production
 
     %% Monitoring & Logging
-    P[Prometheus: Monitor CMS & K8s]
-    O[OpenSearch Stack: Log Management]
-    P --> SK
-    P --> PK
-    P --> US
-    P --> CS
-    P --> MS
-    P --> CTS
-    P --> CMS
+    Prometheus[Prometheus: Monitor CMS & K8s] 
+    OpenSearch[OpenSearch: Log Management]
+    Prometheus --> Staging
+    Prometheus --> Production
+    OpenSearch --> Staging
+    OpenSearch --> Production
 
-    O --> SK
-    O --> PK
-    O --> US
-    O --> CS
-    O --> MS
-    O --> CTS
-    O --> CMS
+    %% Notes (simple)
+    Note1[Zero Trust: AuthN/AuthZ, Least Privilege] --> APIGateway
+    Note2[Git Repos for Source Code] --> GitRepo
+    Note3[Deployment Guide, Presentation/Demo] --> Production
 
-    %% Notes
-    N1[Zero Trust: AuthN/AuthZ, Least Privilege] --> A
-    N2[Git Repos for Source Code] --> GR
-    N3[Deployment Guide, Presentation/Demo] --> PK
+```
