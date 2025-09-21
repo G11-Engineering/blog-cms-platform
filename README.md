@@ -207,22 +207,22 @@ flowchart TB
     end
 
     subgraph "Databases & Storage"
-        DB[(PostgreSQL\n(User, Content, Category, Comment))]
+        DB[(PostgreSQL)]
         Storage[(MinIO / S3)]
-        Cache[(Redis Cache/Session)]
+        Cache[(Redis)]
     end
 
     subgraph "CI/CD Pipeline"
         Repo[GitHub/GitLab Repo]
-        CI[CI: GitHub Actions / GitLab CI]
-        Registry[Docker + Registry]
-        Argo[ArgoCD (GitOps)]
+        CI[GitHub Actions / GitLab CI]
+        Registry[Docker Registry]
+        Argo[ArgoCD]
     end
 
     subgraph "Kubernetes Infrastructure"
         K8S[Kubernetes Cluster]
         Helm[Helm Charts]
-        Ingress[Ingress Controller (Nginx)]
+        Ingress[Ingress Controller]
         HPA[Horizontal Pod Autoscaler]
     end
 
@@ -267,9 +267,9 @@ flowchart TB
     OpenSearch --> K8S
     Alert --> Prom
 
-    %% Security (conceptual links, not strict edges)
     GW --- JWT
     K8S --- RBAC
     GW --- mTLS
+
 
 ```
