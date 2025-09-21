@@ -187,3 +187,89 @@ sequenceDiagram
     WebApp-->>Author: Article Created Successfully
 
 ```
+
+```mermaid
+flowchart TB
+    subgraph Frontend
+        FE[React.js / Next.js]
+    end
+
+    subgraph "API Gateway"
+        GW[Nginx / Kong Gateway]
+    end
+
+    subgraph "Microservices (FastAPI)"
+        US[User Service]
+        CS[Content Service]
+        MS[Media Service]
+        CTS[Category & Tag Service]
+        COMS[Comment Service]
+    end
+
+    subgraph "Databases & Storage"
+        DB[(PostgreSQL\n(User, Content, Category, Comment))]
+        Storage[(MinIO / S3)]
+        Cache[(Redis Cache/Session)]
+    end
+
+    subgraph "CI/CD Pipeline"
+        Repo[GitHub/GitLab Repo]
+        CI[CI: GitHub Actions / GitLab CI]
+        Registry[Docker + Registry]
+        Argo[ArgoCD (GitOps)]
+    end
+
+    subgraph "Kubernetes Infrastructure"
+        K8S[Kubernetes Cluster]
+        Helm[Helm Charts]
+        Ingress[Ingress Controller (Nginx)]
+        HPA[Horizontal Pod Autoscaler]
+    end
+
+    subgraph "Monitoring & Logging"
+        Prom[Prometheus]
+        Grafana[Grafana]
+        OpenSearch[OpenSearch]
+        Alert[Alertmanager]
+    end
+
+    subgraph Security
+        mTLS[mTLS between services]
+        RBAC[K8s RBAC]
+        JWT[JWT Auth]
+    end
+
+    %% Connections
+    FE --> GW
+    GW --> US
+    GW --> CS
+    GW --> MS
+    GW --> CTS
+    GW --> COMS
+
+    US --> DB
+    CS --> DB
+    CTS --> DB
+    COMS --> DB
+    MS --> Storage
+    US --> Cache
+
+    Repo --> CI
+    CI --> Registry
+    Registry --> Argo
+    Argo --> K8S
+    Helm --> K8S
+    Ingress --> K8S
+    GW --> Ingress
+
+    Prom --> K8S
+    Grafana --> Prom
+    OpenSearch --> K8S
+    Alert --> Prom
+
+    %% Security (conceptual links, not strict edges)
+    GW --- JWT
+    K8S --- RBAC
+    GW --- mTLS
+
+```
