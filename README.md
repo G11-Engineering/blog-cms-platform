@@ -187,7 +187,7 @@ sequenceDiagram
     WebApp-->>Author: Article Created Successfully
 
 ```
-
+## Stack Diagram
 ```mermaid
 flowchart TB
     subgraph Frontend
