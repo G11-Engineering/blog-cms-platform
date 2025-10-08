@@ -1,275 +1,375 @@
-# blog-cms-platform
+# CMS Blog Platform
 
-```mermaid
-graph TD
-    %% Clients
-    User[Users: Authors, Editors, Admins, Readers] --> Browser[Web Browser]
-    Browser --> WebApp[Web Application Layer<br>Scalable based on user traffic/load]
+A fully functional CMS/Blog platform built with microservices architecture, featuring a React/Next.js frontend with Mantine UI and TipTap editor, backed by multiple Node.js microservices.
 
-    %% API Gateway
-    WebApp --> APIGateway[API Gateway / Load Balancer]
+## 🚀 Features
 
-    %% Microservices
-    subgraph Microservices
-        UserSvc[User Service: Auth, Profiles, Roles]
-        ContentSvc[Content Service: CRUD, Drafts, Scheduling, Versioning]
-        MediaSvc[Media Service: File Uploads]
-        CatTagSvc[Category & Tag Service: Organization, Browse/Search]
-        CommentSvc[Comment Service: Comments, Replies, Moderation]
-    end
+### Frontend
+- **Next.js 14** with App Router and Server-Side Rendering
+- **Mantine UI** component library for modern, accessible interface
+- **TipTap Editor** for rich text content creation
+- **React Query** for efficient data fetching and caching
+- **TypeScript** for type safety
 
-    %% Databases
-    UserSvc --> UDB[(User DB)]
-    ContentSvc --> CDB[(Content DB)]
-    MediaSvc --> MDB[(Media DB)]
-    CatTagSvc --> CTDB[(Cat/Tag DB)]
-    CommentSvc --> CMDB[(Comment DB)]
+### Backend Microservices
+- **User Service** - Authentication, user management, roles (admin, editor, author, reader)
+- **Content Service** - CRUD operations for posts, drafts, versioning, scheduled publishing
+- **Media Service** - File uploads, image processing, thumbnails
+- **Category & Tag Service** - Content organization and filtering
+- **Comment Service** - Comments, replies, moderation system
 
-    %% Connections
-    APIGateway --> UserSvc
-    APIGateway --> ContentSvc
-    APIGateway --> MediaSvc
-    APIGateway --> CatTagSvc
-    APIGateway --> CommentSvc
+### Database
+- **PostgreSQL** with separate schemas for each microservice
+- **Database migrations** and initialization scripts
+- **Optimized indexes** for performance
 
-    %% CI/CD Pipeline
-    subgraph CI/CD Pipeline
-        GitRepo[GitHub Repo: Source Code]
-        CICD[CI/CD Tool: Jenkins/GitHub Actions]
-        Stage1[Stage 1: Monitor & Trigger]
-        Stage2[Stage 2: Build & Containerize]
-        Stage3[Stage 3: Security Scans]
-        Fail[Fail Pipeline & Notify]
-        Stage4[Stage 4: Deploy to Staging]
-        Stage5[Stage 5: Manual Approval]
-        Stage6[Stage 6: Production Deployment]
-        DeploymentNote[Canary/Blue-Green Deployment<br>Auto Rollback]
+### Key Features
+- ✅ User authentication with JWT tokens
+- ✅ Role-based access control
+- ✅ Rich text editor with image uploads
+- ✅ Post scheduling and versioning
+- ✅ Media management with thumbnails
+- ✅ Categories and tags system
+- ✅ Comments with moderation
+- ✅ Responsive design
+- ✅ Docker Compose for easy setup
 
-        GitRepo --> CICD --> Stage1 --> Stage2 --> Stage3
-        Stage3 --> Fail
-        Stage3 --> Stage4
-        Stage4 --> Stage5 --> Stage6 --> DeploymentNote
-    end
+## 📋 Prerequisites
 
-    %% Kubernetes Infrastructure
-    subgraph Kubernetes
-        Staging[Staging Cluster<br>ArgoCD for GitOps]
-        Production[Production Cluster<br>Canary/Blue-Green, Zero Trust]
-    end
-    Stage4 --> Staging
-    Stage6 --> Production
-    DeploymentNote --> Production
+- **Node.js** 18+ 
+- **Docker** and **Docker Compose**
+- **Git**
 
-    %% Monitoring & Logging
-    Prometheus[Prometheus: Monitor CMS & K8s] 
-    OpenSearch[OpenSearch: Log Management]
-    Prometheus --> Staging
-    Prometheus --> Production
-    OpenSearch --> Staging
-    OpenSearch --> Production
+## 🛠️ Quick Start
 
-    %% Notes
-    Note1[Zero Trust: AuthN/AuthZ, Least Privilege] --> APIGateway
-    Note2[Git Repos for Source Code] --> GitRepo
-    Note3[Deployment Guide, Presentation/Demo] --> Production
+### 1. Clone the Repository
 
-
+```bash
+git clone <repository-url>
+cd cms-blog-platform
 ```
 
+### 2. Start with Docker Compose
 
-## Deployment Diagram
+```bash
+# Start all services
+docker-compose up -d
 
-
-```mermaid
-
-graph TD
-    %% Clients
-    User[Users] --> Browser[Web Browser]
-    Browser --> WebApp[Web Application Layer<br>Scalable]
-
-    %% API Gateway
-    WebApp --> APIGateway[API Gateway / Load Balancer]
-
-    %% Microservices
-    subgraph Microservices
-        UserSvc[User Service]
-        ContentSvc[Content Service]
-        MediaSvc[Media Service]
-        CatTagSvc[Category & Tag Service]
-        CommentSvc[Comment Service]
-    end
-
-    %% Databases
-    UserSvc --> UDB[(User DB)]
-    ContentSvc --> CDB[(Content DB)]
-    MediaSvc --> MDB[(Media DB)]
-    CatTagSvc --> CTDB[(Cat/Tag DB)]
-    CommentSvc --> CMDB[(Comment DB)]
-
-    %% Kubernetes
-    subgraph Kubernetes
-        Staging[Staging Cluster<br>ArgoCD GitOps]
-        Production[Production Cluster<br>Canary/Blue-Green, Zero Trust]
-    end
-
-    StageDeploy[CI/CD Deployment] --> Staging
-    StageDeploy --> Production
-
-
+# Check service status
+docker-compose ps
 ```
 
-## Use Case Diagram
-```mermaid
+This will start:
+- 6 PostgreSQL databases (one per microservice)
+- 5 Node.js microservices
+- 1 Next.js frontend
+- All services will be available on their respective ports
 
-%% CMS Use Case Diagram
-graph TD
-    %% Actors
-    Author[Author]
-    Editor[Editor]
-    Admin[Admin]
-    Reader[Reader]
+### 3. Install Dependencies (Alternative to Docker)
 
-    %% Use Cases
-    CreateArticle[Create Article]
-    EditArticle[Edit Article]
-    SchedulePublish[Schedule & Publish Article]
-    ApproveArticle[Approve Article]
-    ManageUsers[Manage Users & Roles]
-    CommentArticle[Comment on Article]
-    SearchContent[Search Content]
-    ManageCategories[Manage Categories & Tags]
+If you prefer to run services locally:
 
-    %% Relationships
-    Author --> CreateArticle
-    Author --> EditArticle
-    Author --> SchedulePublish
+```bash
+# Install root dependencies
+npm install
 
-    Editor --> ApproveArticle
-    Editor --> EditArticle
-
-    Admin --> ManageUsers
-    Admin --> ManageCategories
-
-    Reader --> CommentArticle
-    Reader --> SearchContent
-
-
+# Install all service dependencies
+npm run install:all
 ```
 
+### 4. Start Services Locally
 
-## Sequence Diagram
-```mermaid
-sequenceDiagram
-    actor Author
-    participant WebApp
-    participant APIGateway
-    participant UserSvc
-    participant ContentSvc
-    participant MediaSvc
-    participant CatTagSvc
+```bash
+# Start all services in development mode
+npm run dev
 
-    Author->>WebApp: Login
-    WebApp->>APIGateway: Authenticate Request
-    APIGateway->>UserSvc: Validate User
-    UserSvc-->>APIGateway: Auth OK
-    APIGateway-->>WebApp: Auth Success
+# Or start services individually
+npm run dev:user      # User Service (port 3001)
+npm run dev:content   # Content Service (port 3002)
+npm run dev:media     # Media Service (port 3003)
+npm run dev:category  # Category Service (port 3004)
+npm run dev:comment   # Comment Service (port 3005)
+npm run dev:frontend  # Frontend (port 3000)
+```
 
-    Author->>WebApp: Create Article + Upload Media
-    WebApp->>APIGateway: API Call
-    APIGateway->>ContentSvc: Save Article
-    APIGateway->>MediaSvc: Save Media
-    APIGateway->>CatTagSvc: Assign Categories/Tags
+## 🌐 Service URLs
 
-    ContentSvc-->>APIGateway: Article Saved
-    MediaSvc-->>APIGateway: Media Saved
-    CatTagSvc-->>APIGateway: Tags Assigned
-    APIGateway-->>WebApp: Confirmation
-    WebApp-->>Author: Article Created Successfully
+| Service | URL | Description |
+|---------|-----|-------------|
+| Frontend | http://localhost:3000 | Next.js application |
+| User Service | http://localhost:3001 | Authentication & user management |
+| Content Service | http://localhost:3002 | Posts & content management |
+| Media Service | http://localhost:3003 | File uploads & media |
+| Category Service | http://localhost:3004 | Categories & tags |
+| Comment Service | http://localhost:3005 | Comments & moderation |
+
+## 🔐 Default Credentials
+
+A default admin user is created automatically:
+
+- **Email:** admin@cms.com
+- **Password:** admin123
+- **Role:** admin
+
+## 📁 Project Structure
 
 ```
-## Stack Diagram
-```mermaid
-flowchart TB
-    subgraph Frontend
-        FE[React.js / Next.js]
-    end
-
-    subgraph "API Gateway"
-        GW[Nginx / Kong Gateway]
-    end
-
-    subgraph "Microservices (FastAPI)"
-        US[User Service]
-        CS[Content Service]
-        MS[Media Service]
-        CTS[Category & Tag Service]
-        COMS[Comment Service]
-    end
-
-    subgraph "Databases & Storage"
-        DB[(PostgreSQL)]
-        Storage[(MinIO / S3)]
-        Cache[(Redis)]
-    end
-
-    subgraph "CI/CD Pipeline"
-        Repo[GitHub/GitLab Repo]
-        CI[GitHub Actions / GitLab CI]
-        Registry[Docker Registry]
-        Argo[ArgoCD]
-    end
-
-    subgraph "Kubernetes Infrastructure"
-        K8S[Kubernetes Cluster]
-        Helm[Helm Charts]
-        Ingress[Ingress Controller]
-        HPA[Horizontal Pod Autoscaler]
-    end
-
-    subgraph "Monitoring & Logging"
-        Prom[Prometheus]
-        Grafana[Grafana]
-        OpenSearch[OpenSearch]
-        Alert[Alertmanager]
-    end
-
-    subgraph Security
-        mTLS[mTLS between services]
-        RBAC[K8s RBAC]
-        JWT[JWT Auth]
-    end
-
-    %% Connections
-    FE --> GW
-    GW --> US
-    GW --> CS
-    GW --> MS
-    GW --> CTS
-    GW --> COMS
-
-    US --> DB
-    CS --> DB
-    CTS --> DB
-    COMS --> DB
-    MS --> Storage
-    US --> Cache
-
-    Repo --> CI
-    CI --> Registry
-    Registry --> Argo
-    Argo --> K8S
-    Helm --> K8S
-    Ingress --> K8S
-    GW --> Ingress
-
-    Prom --> K8S
-    Grafana --> Prom
-    OpenSearch --> K8S
-    Alert --> Prom
-
-    GW --- JWT
-    K8S --- RBAC
-    GW --- mTLS
-
-
+cms-blog-platform/
+├── frontend/                 # Next.js frontend application
+│   ├── src/
+│   │   ├── app/             # App Router pages
+│   │   ├── components/      # Reusable components
+│   │   ├── contexts/        # React contexts
+│   │   ├── hooks/           # Custom hooks
+│   │   └── services/        # API services
+│   └── package.json
+├── services/                 # Microservices
+│   ├── user-service/        # Authentication & users
+│   ├── content-service/     # Posts & content
+│   ├── media-service/       # File uploads
+│   ├── category-service/    # Categories & tags
+│   └── comment-service/     # Comments
+├── database/                # Database schemas
+│   ├── init/               # Database initialization
+│   └── schemas/            # Service-specific schemas
+├── docker-compose.yml       # Docker Compose configuration
+└── package.json            # Root package.json
 ```
+
+## 🗄️ Database Schema
+
+Each microservice has its own PostgreSQL database:
+
+### User Service Database
+- `users` - User accounts and profiles
+- `user_sessions` - JWT token sessions
+- `user_profiles` - Extended user information
+
+### Content Service Database
+- `posts` - Blog posts and articles
+- `post_versions` - Post version history
+- `post_categories` - Post-category relationships
+- `post_tags` - Post-tag relationships
+- `post_views` - View tracking
+
+### Media Service Database
+- `media_files` - Uploaded files metadata
+- `media_thumbnails` - Generated thumbnails
+- `media_usage` - File usage tracking
+
+### Category Service Database
+- `categories` - Content categories
+- `tags` - Content tags
+- `category_hierarchy` - Category relationships
+
+### Comment Service Database
+- `comments` - User comments
+- `comment_moderation` - Moderation actions
+- `comment_likes` - Comment likes
+
+## 🔧 Development
+
+### Adding New Features
+
+1. **Frontend Changes**: Edit files in `frontend/src/`
+2. **Backend Changes**: Edit files in `services/[service-name]/src/`
+3. **Database Changes**: Update schemas in `database/schemas/`
+
+### API Documentation
+
+Each service exposes REST APIs:
+
+#### User Service APIs
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile` - Update profile
+
+#### Content Service APIs
+- `GET /api/posts` - List posts
+- `POST /api/posts` - Create post
+- `PUT /api/posts/:id` - Update post
+- `DELETE /api/posts/:id` - Delete post
+- `POST /api/posts/:id/publish` - Publish post
+
+#### Media Service APIs
+- `GET /api/media` - List media files
+- `POST /api/media/upload` - Upload files
+- `PUT /api/media/:id` - Update media metadata
+- `DELETE /api/media/:id` - Delete media
+
+#### Category Service APIs
+- `GET /api/categories` - List categories
+- `POST /api/categories` - Create category
+- `GET /api/tags` - List tags
+- `POST /api/tags` - Create tag
+
+#### Comment Service APIs
+- `GET /api/comments` - List comments
+- `POST /api/comments` - Create comment
+- `POST /api/comments/:id/like` - Like comment
+- `POST /api/comments/:id/moderate` - Moderate comment
+
+### Environment Variables
+
+Create `.env` files in each service directory:
+
+#### User Service (.env)
+```env
+NODE_ENV=development
+PORT=3001
+DATABASE_URL=postgresql://user_service:user_password@localhost:5433/user_service
+JWT_SECRET=your-super-secret-jwt-key
+JWT_EXPIRES_IN=7d
+```
+
+#### Content Service (.env)
+```env
+NODE_ENV=development
+PORT=3002
+DATABASE_URL=postgresql://content_service:content_password@localhost:5434/content_service
+```
+
+#### Media Service (.env)
+```env
+NODE_ENV=development
+PORT=3003
+DATABASE_URL=postgresql://media_service:media_password@localhost:5435/media_service
+UPLOAD_PATH=/app/uploads
+```
+
+#### Category Service (.env)
+```env
+NODE_ENV=development
+PORT=3004
+DATABASE_URL=postgresql://category_service:category_password@localhost:5436/category_service
+```
+
+#### Comment Service (.env)
+```env
+NODE_ENV=development
+PORT=3005
+DATABASE_URL=postgresql://comment_service:comment_password@localhost:5437/comment_service
+```
+
+#### Frontend (.env.local)
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost
+NEXT_PUBLIC_USER_SERVICE_URL=http://localhost:3001
+NEXT_PUBLIC_CONTENT_SERVICE_URL=http://localhost:3002
+NEXT_PUBLIC_MEDIA_SERVICE_URL=http://localhost:3003
+NEXT_PUBLIC_CATEGORY_SERVICE_URL=http://localhost:3004
+NEXT_PUBLIC_COMMENT_SERVICE_URL=http://localhost:3005
+```
+
+## 🧪 Testing
+
+### Run Tests
+
+```bash
+# Run all tests
+npm run test
+
+# Run frontend tests
+npm run test:frontend
+
+# Run service tests
+npm run test:services
+```
+
+### Manual Testing
+
+1. **Access the frontend**: http://localhost:3000
+2. **Login with admin credentials**: admin@cms.com / admin123
+3. **Create a new post**: Navigate to "Create Post"
+4. **Upload media**: Use the media upload feature
+5. **Test comments**: Add comments to posts
+6. **Test categories**: Create and assign categories
+
+## 🚀 Deployment
+
+### Production Build
+
+```bash
+# Build all services
+npm run build
+
+# Start production services
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Environment Setup
+
+For production deployment:
+
+1. Update environment variables
+2. Configure database connections
+3. Set up file storage (AWS S3, etc.)
+4. Configure reverse proxy (Nginx)
+5. Set up SSL certificates
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+1. **Port conflicts**: Ensure ports 3000-3007 are available
+2. **Database connection**: Check PostgreSQL is running
+3. **File uploads**: Verify upload directory permissions
+4. **CORS errors**: Check service URLs in frontend config
+
+### Logs
+
+```bash
+# View all service logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f user-service
+docker-compose logs -f frontend
+```
+
+### Reset Database
+
+```bash
+# Stop services
+docker-compose down
+
+# Remove volumes
+docker-compose down -v
+
+# Restart services
+docker-compose up -d
+```
+
+## 📚 Additional Resources
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Mantine UI Documentation](https://mantine.dev/)
+- [TipTap Editor Documentation](https://tiptap.dev/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For issues and questions:
+
+1. Check the troubleshooting section
+2. Review service logs
+3. Create an issue with detailed information
+4. Include error messages and steps to reproduce
+
+---
+
+**Happy coding! 🎉**

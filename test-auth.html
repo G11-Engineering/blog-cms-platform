@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Authentication Test</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testCreatePost()">Test Create Post</button>
+    <div id="result"></div>
+
+    <script>
+        async function testLogin() {
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@cms.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Login response:', data);
+                
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    document.getElementById('result').innerHTML = 'Login successful! Token stored.';
+                } else {
+                    document.getElementById('result').innerHTML = 'Login failed: ' + JSON.stringify(data);
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+
+        async function testCreatePost() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                document.getElementById('result').innerHTML = 'No token found. Please login first.';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3002/api/posts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        title: 'Test Post from Frontend',
+                        content: '<p>This is a test post from the frontend</p>',
+                        excerpt: 'Test excerpt from frontend'
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Create post response:', data);
+                
+                if (response.ok) {
+                    document.getElementById('result').innerHTML = 'Post created successfully! ' + JSON.stringify(data);
+                } else {
+                    document.getElementById('result').innerHTML = 'Create post failed: ' + JSON.stringify(data);
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

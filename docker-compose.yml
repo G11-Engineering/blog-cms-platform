@@ -1,0 +1,210 @@
+version: '3.8'
+
+services:
+  # User Service Database
+  postgres-user:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: user_service
+      POSTGRES_USER: user_service
+      POSTGRES_PASSWORD: user_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_user_data:/var/lib/postgresql/data
+    networks:
+      - cms-network
+
+  # Content Service Database
+  postgres-content:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: content_service
+      POSTGRES_USER: content_service
+      POSTGRES_PASSWORD: content_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_content_data:/var/lib/postgresql/data
+    networks:
+      - cms-network
+
+  # Media Service Database
+  postgres-media:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: media_service
+      POSTGRES_USER: media_service
+      POSTGRES_PASSWORD: media_password
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_media_data:/var/lib/postgresql/data
+    networks:
+      - cms-network
+
+  # Category Service Database
+  postgres-category:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: category_service
+      POSTGRES_USER: category_service
+      POSTGRES_PASSWORD: category_password
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_category_data:/var/lib/postgresql/data
+    networks:
+      - cms-network
+
+  # Comment Service Database
+  postgres-comment:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: comment_service
+      POSTGRES_USER: comment_service
+      POSTGRES_PASSWORD: comment_password
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres_comment_data:/var/lib/postgresql/data
+    networks:
+      - cms-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://user_service:user_password@postgres-user:5432/user_service
+      JWT_SECRET: your-super-secret-jwt-key
+    depends_on:
+      - postgres-user
+    networks:
+      - cms-network
+    volumes:
+      - ./services/user-service:/app
+      - /app/node_modules
+
+  # Content Service
+  content-service:
+    build:
+      context: ./services/content-service
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DATABASE_URL: postgresql://content_service:content_password@postgres-content:5432/content_service
+    depends_on:
+      - postgres-content
+    networks:
+      - cms-network
+    volumes:
+      - ./services/content-service:/app
+      - /app/node_modules
+
+  # Media Service
+  media-service:
+    build:
+      context: ./services/media-service
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgresql://media_service:media_password@postgres-media:5432/media_service
+      UPLOAD_PATH: /app/uploads
+    depends_on:
+      - postgres-media
+    networks:
+      - cms-network
+    volumes:
+      - ./services/media-service:/app
+      - /app/node_modules
+      - media_uploads:/app/uploads
+
+  # Category Service
+  category-service:
+    build:
+      context: ./services/category-service
+      dockerfile: Dockerfile
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      DATABASE_URL: postgresql://category_service:category_password@postgres-category:5432/category_service
+    depends_on:
+      - postgres-category
+    networks:
+      - cms-network
+    volumes:
+      - ./services/category-service:/app
+      - /app/node_modules
+
+  # Comment Service
+  comment-service:
+    build:
+      context: ./services/comment-service
+      dockerfile: Dockerfile
+    ports:
+      - "3005:3005"
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      DATABASE_URL: postgresql://comment_service:comment_password@postgres-comment:5432/comment_service
+    depends_on:
+      - postgres-comment
+    networks:
+      - cms-network
+    volumes:
+      - ./services/comment-service:/app
+      - /app/node_modules
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_BASE_URL: http://localhost
+      NEXT_PUBLIC_USER_SERVICE_URL: http://localhost:3001
+      NEXT_PUBLIC_CONTENT_SERVICE_URL: http://localhost:3002
+      NEXT_PUBLIC_MEDIA_SERVICE_URL: http://localhost:3003
+      NEXT_PUBLIC_CATEGORY_SERVICE_URL: http://localhost:3004
+      NEXT_PUBLIC_COMMENT_SERVICE_URL: http://localhost:3005
+    depends_on:
+      - user-service
+      - content-service
+      - media-service
+      - category-service
+      - comment-service
+    networks:
+      - cms-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  postgres_user_data:
+  postgres_content_data:
+  postgres_media_data:
+  postgres_category_data:
+  postgres_comment_data:
+  media_uploads:
+
+networks:
+  cms-network:
+    driver: bridge
