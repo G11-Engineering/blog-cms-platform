@@ -3,7 +3,7 @@ import { getDatabase } from '../config/database';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 
-export const getComments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getComments = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const db = getDatabase();
     const { 
@@ -105,7 +105,7 @@ export const getComments = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const getCommentById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getCommentById = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
     const db = getDatabase();
@@ -257,7 +257,7 @@ export const moderateComment = async (req: AuthRequest, res: Response, next: Nex
   }
 };
 
-export const likeComment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const likeComment = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
     const db = getDatabase();
@@ -297,7 +297,7 @@ export const likeComment = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const getCommentLikes = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getCommentLikes = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
     const db = getDatabase();

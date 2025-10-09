@@ -58,8 +58,7 @@ export default function PostsPage() {
     category: selectedCategory,
     tag: selectedTag,
     sortBy,
-    limit: itemsPerPage,
-    offset: (currentPage - 1) * itemsPerPage
+    limit: itemsPerPage
   });
 
   const { data: categories } = useCategories({ limit: 20 });

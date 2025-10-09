@@ -1,6 +1,6 @@
 'use client';
 
-import { Container, Grid, Stack, Title, Text, Button, Group, Card, Badge, TextInput, Select, Box, Center, ThemeIcon, Divider, Pagination } from '@mantine/core';
+import { Container, Grid, Stack, Title, Text, Button, Group, Card, Badge, TextInput, Select, Box, Center, ThemeIcon, Divider, Pagination, Image } from '@mantine/core';
 import { IconTag, IconSearch, IconFilter, IconTrendingUp, IconClock, IconEye, IconBookmark } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useTags } from '@/hooks/useTags';

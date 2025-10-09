@@ -36,8 +36,8 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET as string,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
     );
 
     res.status(201).json({
@@ -87,8 +87,8 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET as string,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
     );
 
     // Store session
@@ -96,7 +96,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     await db.query(
       'INSERT INTO user_sessions (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
-      [user.id, jwt.sign({ sessionId }, process.env.JWT_SECRET!), expiresAt]
+      [user.id, jwt.sign({ sessionId }, process.env.JWT_SECRET as string), expiresAt]
     );
 
     res.json({
@@ -131,13 +131,13 @@ export const logout = async (req: AuthRequest, res: Response, next: NextFunction
 
 export const refreshToken = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { userId, email, role } = req.user!;
+    const { id, email, role } = req.user!;
     
     // Generate new token
     const token = jwt.sign(
-      { userId, email, role },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { userId: id, email, role },
+      process.env.JWT_SECRET as string,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
     );
 
     res.json({ token });

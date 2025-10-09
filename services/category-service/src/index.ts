@@ -49,7 +49,7 @@ app.get('/debug', async (req, res) => {
       categories_count: result.rows[0].count 
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 

@@ -231,14 +231,14 @@ export default function CreatePostPage() {
               <Button
                 variant="outline"
                 onClick={() => router.back()}
-                disabled={createPost.isPending}
+                disabled={createPost.isLoading}
               >
                 Cancel
               </Button>
               
               <Button
                 type="submit"
-                loading={createPost.isPending}
+                loading={createPost.isLoading}
                 disabled={!form.isValid()}
               >
                 {isScheduled ? 'Schedule Post' : 'Create Post'}

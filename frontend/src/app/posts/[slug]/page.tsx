@@ -164,7 +164,7 @@ export default function PostPage() {
                   <Button
                     size="sm"
                     onClick={handlePublish}
-                    loading={publishPost.isPending}
+                    loading={publishPost.isLoading}
                   >
                     Publish
                   </Button>
@@ -175,7 +175,7 @@ export default function PostPage() {
                   size="sm"
                   leftSection={<IconTrash size={16} />}
                   onClick={handleDelete}
-                  loading={deletePost.isPending}
+                  loading={deletePost.isLoading}
                 >
                   Delete
                 </Button>
@@ -313,7 +313,7 @@ export default function PostPage() {
               <Button variant="outline" onClick={closeCommentModal}>
                 Cancel
               </Button>
-              <Button type="submit" loading={createComment.isPending}>
+              <Button type="submit" loading={createComment.isLoading}>
                 Post Comment
               </Button>
             </Group>

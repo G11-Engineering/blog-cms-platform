@@ -6,7 +6,7 @@ import { Container, Stack, Title, Text, Button, Card, Group } from '@mantine/cor
 export default function DebugPage() {
   const [posts, setPosts] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -18,7 +18,7 @@ export default function DebugPage() {
       setPosts(data);
     } catch (err) {
       console.error('Direct API call error:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }

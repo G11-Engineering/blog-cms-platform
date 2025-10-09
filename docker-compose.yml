@@ -89,13 +89,14 @@ services:
       - cms-network
     volumes:
       - ./services/user-service:/app
+      - ./database:/database
       - /app/node_modules
 
   # Content Service
   content-service:
     build:
       context: ./services/content-service
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3002:3002"
     environment:
@@ -108,7 +109,9 @@ services:
       - cms-network
     volumes:
       - ./services/content-service:/app
+      - ./database:/database
       - /app/node_modules
+    command: ["npm", "run", "dev"]
 
   # Media Service
   media-service:
@@ -128,6 +131,7 @@ services:
       - cms-network
     volumes:
       - ./services/media-service:/app
+      - ./database:/database
       - /app/node_modules
       - media_uploads:/app/uploads
 
@@ -135,7 +139,7 @@ services:
   category-service:
     build:
       context: ./services/category-service
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3004:3004"
     environment:
@@ -148,7 +152,9 @@ services:
       - cms-network
     volumes:
       - ./services/category-service:/app
+      - ./database:/database
       - /app/node_modules
+    command: ["npm", "run", "dev"]
 
   # Comment Service
   comment-service:
@@ -167,13 +173,14 @@ services:
       - cms-network
     volumes:
       - ./services/comment-service:/app
+      - ./database:/database
       - /app/node_modules
 
   # Frontend
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3000:3000"
     environment:
@@ -196,6 +203,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
+    command: ["npm", "run", "dev"]
 
 volumes:
   postgres_user_data:

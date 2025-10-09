@@ -1,7 +1,7 @@
 'use client';
 
 import { Container, Grid, Stack, Title, Text, Button, Group, Card, Box, Center, ThemeIcon, Divider, Badge } from '@mantine/core';
-import { IconBookmark, IconUser, IconBrand, IconTrendingUp, IconClock, IconTag, IconCategory } from '@tabler/icons-react';
+import { IconBookmark, IconUser, IconTrendingUp, IconClock, IconTag, IconCategory } from '@tabler/icons-react';
 import Link from 'next/link';
 
 export default function HomePage() {
