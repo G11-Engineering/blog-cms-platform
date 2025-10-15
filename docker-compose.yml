@@ -75,7 +75,7 @@ services:
   user-service:
     build:
       context: ./services/user-service
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3001:3001"
     environment:
@@ -117,7 +117,7 @@ services:
   media-service:
     build:
       context: ./services/media-service
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3003:3003"
     environment:
@@ -160,7 +160,7 @@ services:
   comment-service:
     build:
       context: ./services/comment-service
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3005:3005"
     environment:
