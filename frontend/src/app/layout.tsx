@@ -5,7 +5,7 @@ import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { AuthProvider } from '@/contexts/AuthContext';
+import ClientAuthProvider from '@/components/ClientAuthProvider';
 import { Navigation } from '@/components/Navigation';
 import { theme } from '@/theme';
 import '@mantine/core/styles.css';
@@ -33,11 +33,11 @@ export default function RootLayout({
         <QueryClientProvider client={queryClient}>
           <MantineProvider theme={theme}>
             <ModalsProvider>
-                  <AuthProvider>
-                    <Navigation />
-                    <Notifications />
-                    {children}
-                  </AuthProvider>
+              <ClientAuthProvider>
+                <Navigation />
+                <Notifications />
+                {children}
+              </ClientAuthProvider>
             </ModalsProvider>
           </MantineProvider>
         </QueryClientProvider>

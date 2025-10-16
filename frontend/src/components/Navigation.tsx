@@ -1,11 +1,38 @@
 'use client';
 
 import { Container, Group, Button, Text, Box } from '@mantine/core';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@asgardeo/auth-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export function Navigation() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { signIn, signOut, isAuthenticated, getBasicUserInfo } = useAuthContext();
+  const [authenticated, setAuthenticated] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const authStatus = await isAuthenticated();
+        setAuthenticated(authStatus);
+        
+        if (authStatus) {
+          const userInfo = await getBasicUserInfo();
+          setUser(userInfo);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      }
+    };
+
+    checkAuth();
+  }, [isAuthenticated, getBasicUserInfo]);
+
+  const handleLogout = () => {
+    signOut();
+    setAuthenticated(false);
+    setUser(null);
+  };
 
   return (
     <Box
@@ -73,7 +100,7 @@ export function Navigation() {
               Tags
             </Button>
             
-            {isAuthenticated ? (
+            {authenticated ? (
               <Group>
                 <Button 
                   component={Link} 
@@ -92,7 +119,7 @@ export function Navigation() {
                 <Button 
                   variant="outline"
                   c="white"
-                  onClick={logout}
+                  onClick={handleLogout}
                   style={{
                     borderColor: 'rgba(255, 255, 255, 0.3)',
                     color: 'white',
@@ -105,8 +132,7 @@ export function Navigation() {
             ) : (
               <Group>
                 <Button 
-                  component={Link} 
-                  href="/auth/login" 
+                  onClick={() => signIn()}
                   variant="outline"
                   c="white"
                   style={{
