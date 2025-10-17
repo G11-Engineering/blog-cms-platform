@@ -6,6 +6,10 @@ dist/
 build/
 *.log
 
+# Next.js build files
+.next/
+frontend/.next/
+
 # OS
 .DS_Store
 Thumbs.db
