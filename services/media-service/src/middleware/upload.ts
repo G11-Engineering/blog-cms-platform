@@ -3,17 +3,28 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { createError } from './errorHandler';
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = process.env.UPLOAD_PATH || path.join(__dirname, '../../uploads');
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
+// Configure storage - use memory storage for cloud uploads, disk for local
+const getStorage = () => {
+  const storageProvider = process.env.STORAGE_PROVIDER || 'local';
+  
+  if (storageProvider === 'local') {
+    return multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadPath = process.env.UPLOAD_PATH || path.join(__dirname, '../../uploads');
+        cb(null, uploadPath);
+      },
+      filename: (req, file, cb) => {
+        const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+      }
+    });
+  } else {
+    // Use memory storage for S3/R2 uploads
+    return multer.memoryStorage();
   }
-});
+};
+
+const storage = getStorage();
 
 // File filter
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {

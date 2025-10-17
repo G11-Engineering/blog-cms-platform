@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS media_files (
     filename VARCHAR(255) NOT NULL,
     original_filename VARCHAR(255) NOT NULL,
     file_path VARCHAR(500) NOT NULL,
+    file_url TEXT, -- Public URL for the file (CDN or S3)
+    storage_key VARCHAR(500), -- Key used in cloud storage (S3/R2)
     file_size BIGINT NOT NULL,
     mime_type VARCHAR(100) NOT NULL,
     file_type VARCHAR(20) NOT NULL CHECK (file_type IN ('image', 'video', 'document', 'audio')),
@@ -23,6 +25,8 @@ CREATE TABLE IF NOT EXISTS media_thumbnails (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     media_file_id UUID NOT NULL REFERENCES media_files(id) ON DELETE CASCADE,
     thumbnail_path VARCHAR(500) NOT NULL,
+    thumbnail_url TEXT, -- Public URL for the thumbnail (CDN or S3)
+    storage_key VARCHAR(500), -- Key used in cloud storage (S3/R2)
     width INTEGER NOT NULL,
     height INTEGER NOT NULL,
     size VARCHAR(20) NOT NULL CHECK (size IN ('small', 'medium', 'large')),
