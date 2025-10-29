@@ -22,7 +22,16 @@ export function usePosts(params: UsePostsParams = {}) {
       if (params.category) searchParams.append('category', params.category);
       if (params.tag) searchParams.append('tag', params.tag);
 
-      const response = await fetch(`http://localhost:3002/api/posts?${searchParams.toString()}`);
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`http://localhost:3002/api/posts?${searchParams.toString()}`, {
+        headers,
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch posts');
       }
@@ -50,16 +59,23 @@ export function useCreatePost() {
   
   return useMutation({
     mutationFn: async (data: CreatePostData) => {
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch('http://localhost:3002/api/posts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(data),
       });
       
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: 'Failed to create post' }));
         throw new Error(error.message || 'Failed to create post');
       }
       
@@ -77,15 +93,22 @@ export function usePublishPost() {
   
   return useMutation({
     mutationFn: async (postId: string) => {
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`http://localhost:3002/api/posts/${postId}/publish`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method: 'POST',
+        headers,
       });
       
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: 'Failed to publish post' }));
         throw new Error(error.message || 'Failed to publish post');
       }
       
@@ -103,12 +126,20 @@ export function useDeletePost() {
   
   return useMutation({
     mutationFn: async (postId: string) => {
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`http://localhost:3002/api/posts/${postId}`, {
         method: 'DELETE',
+        headers,
       });
       
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: 'Failed to delete post' }));
         throw new Error(error.message || 'Failed to delete post');
       }
       

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Container, Stack, Title, TextInput, Textarea, Select, MultiSelect, Button, Group, Card, Text, Switch } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
 import { useCreatePost } from '@/hooks/usePosts';
 import { useCategories } from '@/hooks/useCategories';
@@ -40,6 +41,11 @@ export default function CreatePostPage() {
 
   const handleSubmit = async (values: typeof form.values) => {
     if (!isAuthenticated) {
+      notifications.show({
+        title: 'Authentication Required',
+        message: 'Please log in to create a post',
+        color: 'red',
+      });
       return;
     }
 
@@ -50,13 +56,29 @@ export default function CreatePostPage() {
       };
 
       await createPost.mutateAsync(postData);
+      
+      notifications.show({
+        title: 'Success!',
+        message: isScheduled ? 'Post scheduled successfully' : 'Post created successfully',
+        color: 'green',
+      });
+      
       router.push('/posts');
     } catch (error: any) {
       console.error('Failed to create post:', error);
+      
       // Show user-friendly error message
-      if (error.response?.status === 401) {
+      const errorMessage = error.message || 'Failed to create post. Please try again.';
+      
+      notifications.show({
+        title: 'Error',
+        message: errorMessage,
+        color: 'red',
+      });
+      
+      if (error.message?.includes('401') || error.message?.includes('Authentication')) {
         // Redirect to login if not authenticated
-        router.push('/auth/login');
+        setTimeout(() => router.push('/auth/login'), 2000);
       }
     }
   };
@@ -239,7 +261,7 @@ export default function CreatePostPage() {
               <Button
                 type="submit"
                 loading={createPost.isLoading}
-                disabled={!form.isValid()}
+                disabled={createPost.isLoading || !form.values.title || !form.values.content || form.values.content.trim() === '<p></p>'}
               >
                 {isScheduled ? 'Schedule Post' : 'Create Post'}
               </Button>
