@@ -1,9 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AuthProvider } from '@asgardeo/auth-react';
-import { asgardeoConfig } from '@/config/asgardeo';
-
 
 interface ClientAuthProviderProps {
     children: React.ReactNode;
@@ -14,7 +11,9 @@ export default function ClientAuthProvider({ children }: ClientAuthProviderProps
 
     useEffect(() => {
         // Only set mounted in browser environment
-        setMounted(true);
+        if (typeof window !== 'undefined') {
+            setMounted(true);
+        }
     }, []);
 
     // During SSR, return children without Asgardeo provider
@@ -30,9 +29,19 @@ export default function ClientAuthProvider({ children }: ClientAuthProviderProps
 
     // Only wrap with Asgardeo provider if mounted and in browser
     // Note: We're using local auth primarily, so this is optional
-    return (
-        <AuthProvider config={asgardeoConfig}>
-            {children}
-        </AuthProvider>
-    );
+    // Import Asgardeo only on client side to avoid SSR issues
+    try {
+        const { AuthProvider } = require('@asgardeo/auth-react');
+        const { asgardeoConfig } = require('@/config/asgardeo');
+        
+        return (
+            <AuthProvider config={asgardeoConfig}>
+                {children}
+            </AuthProvider>
+        );
+    } catch (error) {
+        // If Asgardeo is not available, just return children
+        // This allows the app to work without Asgardeo
+        return <>{children}</>;
+    }
 }

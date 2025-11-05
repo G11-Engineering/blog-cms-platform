@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Container, Stack, Title, TextInput, Textarea, Select, MultiSelect, Button, Group, Card, Text, Switch, Grid, Divider } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
+import { MediaSelector } from '@/components/MediaSelector';
 import { useCreatePost } from '@/hooks/usePosts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDisclosure } from '@mantine/hooks';
+import { IconPhoto, IconX } from '@tabler/icons-react';
+import { Image } from '@mantine/core';
 
 export default function CreatePostPage() {
   const router = useRouter();
@@ -21,6 +25,9 @@ export default function CreatePostPage() {
   
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
+  const [mediaSelectorOpened, { open: openMediaSelector, close: closeMediaSelector }] = useDisclosure(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const form = useForm({
     initialValues: {
@@ -39,6 +46,69 @@ export default function CreatePostPage() {
     },
   });
 
+  // Auto-save functionality
+  useEffect(() => {
+    if (!autoSaveEnabled || !isAuthenticated) return;
+
+    // Clear existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Only auto-save if there's actual content
+    if (form.values.title || form.values.content) {
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        // Auto-save to localStorage as draft
+        const draftData = {
+          ...form.values,
+          savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem('post-draft', JSON.stringify(draftData));
+        notifications.show({
+          title: 'Auto-saved',
+          message: 'Draft saved locally',
+          color: 'blue',
+          autoClose: 2000,
+        });
+      }, 30000); // Auto-save every 30 seconds
+    }
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [form.values, autoSaveEnabled, isAuthenticated]);
+
+  // Load draft on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedDraft = localStorage.getItem('post-draft');
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft);
+          // Ask user if they want to restore
+          if (confirm('Found a saved draft. Would you like to restore it?')) {
+            form.setValues({
+              title: draft.title || '',
+              content: draft.content || '',
+              excerpt: draft.excerpt || '',
+              featuredImageUrl: draft.featuredImageUrl || '',
+              metaTitle: draft.metaTitle || '',
+              metaDescription: draft.metaDescription || '',
+              categories: draft.categories || [],
+              tags: draft.tags || [],
+            });
+            // Clear the draft after restoring
+            localStorage.removeItem('post-draft');
+          }
+        } catch (error) {
+          console.error('Error loading draft:', error);
+        }
+      }
+    }
+  }, []);
+
   const handleSubmit = async (values: typeof form.values) => {
     if (!isAuthenticated) {
       notifications.show({
@@ -50,9 +120,14 @@ export default function CreatePostPage() {
     }
 
     try {
+      // Clear draft on successful publish
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('post-draft');
+      }
+
       const postData = {
         ...values,
-        status: (isScheduled ? 'scheduled' : 'published') as 'published' | 'scheduled', // Set status so it shows up immediately
+        status: (isScheduled ? 'scheduled' : 'published') as 'published' | 'scheduled',
         scheduledAt: isScheduled ? scheduledAt?.toISOString() : undefined,
       };
 
@@ -201,6 +276,13 @@ export default function CreatePostPage() {
                     <Title order={4}>Publish</Title>
                     
                     <Switch
+                      label="Auto-save Draft"
+                      description="Automatically save your work every 30 seconds"
+                      checked={autoSaveEnabled}
+                      onChange={(event) => setAutoSaveEnabled(event.currentTarget.checked)}
+                    />
+                    
+                    <Switch
                       label="Schedule Post"
                       description="Publish this post at a specific time"
                       checked={isScheduled}
@@ -274,35 +356,58 @@ export default function CreatePostPage() {
                 {/* Featured Image */}
                 <Card withBorder shadow="sm" p="lg" radius="md">
                   <Stack gap="md">
-                    <Title order={4}>Featured Image</Title>
+                    <Group justify="space-between">
+                      <Title order={4}>Featured Image</Title>
+                      <Button
+                        variant="light"
+                        size="sm"
+                        leftSection={<IconPhoto size={16} />}
+                        onClick={openMediaSelector}
+                      >
+                        Select from Media
+                      </Button>
+                    </Group>
                     
                     <TextInput
                       label="Image URL"
-                      placeholder="https://example.com/image.jpg"
+                      placeholder="https://example.com/image.jpg or select from media library"
                       {...form.getInputProps('featuredImageUrl')}
                     />
                     
                     {form.values.featuredImageUrl && (
-                      <div>
+                      <div style={{ position: 'relative' }}>
                         <Text size="sm" fw={500} mb="xs">Preview:</Text>
-                        <img
+                        <Image
                           src={form.values.featuredImageUrl}
                           alt="Featured image preview"
+                          height={200}
+                          fit="cover"
+                          radius="md"
                           style={{
-                            width: '100%',
-                            height: 200,
-                            objectFit: 'cover',
-                            borderRadius: 8,
                             border: '1px solid #e0e0e0',
                           }}
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
+                          onError={() => {
+                            // Handle error gracefully
                           }}
                         />
+                        <Button
+                          variant="subtle"
+                          color="red"
+                          size="xs"
+                          leftSection={<IconX size={14} />}
+                          onClick={() => form.setFieldValue('featuredImageUrl', '')}
+                          style={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                          }}
+                        >
+                          Remove
+                        </Button>
                       </div>
                     )}
                     <Text size="xs" c="dimmed">
-                      Add a featured image to make your post stand out
+                      Add a featured image to make your post stand out. You can upload or select from media library.
                     </Text>
                   </Stack>
                 </Card>

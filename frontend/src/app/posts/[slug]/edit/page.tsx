@@ -7,11 +7,15 @@ import { DateTimePicker } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
+import { MediaSelector } from '@/components/MediaSelector';
 import { useUpdatePost } from '@/hooks/usePosts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from 'react-query';
+import { useDisclosure } from '@mantine/hooks';
+import { IconPhoto, IconX } from '@tabler/icons-react';
+import { Image } from '@mantine/core';
 
 export default function EditPostPage() {
   const router = useRouter();
@@ -428,6 +432,17 @@ export default function EditPostPage() {
             </Grid.Col>
           </Grid>
         </form>
+
+        {/* Media Selector Modal */}
+        <MediaSelector
+          opened={mediaSelectorOpened}
+          onClose={closeMediaSelector}
+          onSelect={(url) => {
+            form.setFieldValue('featuredImageUrl', url);
+            closeMediaSelector();
+          }}
+          title="Select Featured Image"
+        />
       </Stack>
     </Container>
   );

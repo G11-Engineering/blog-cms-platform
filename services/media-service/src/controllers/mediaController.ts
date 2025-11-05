@@ -134,12 +134,30 @@ export const uploadMediaFiles = async (req: AuthRequest, res: Response, next: Ne
       let height = null;
       if (fileType === 'image') {
         try {
-          const metadata = await sharp(file.path).metadata();
-          width = metadata.width;
-          height = metadata.height;
+          // For S3 uploads, file.buffer is available; for local, use file.path
+          if (file.buffer) {
+            const metadata = await sharp(file.buffer).metadata();
+            width = metadata.width;
+            height = metadata.height;
+          } else if (file.path) {
+            const metadata = await sharp(file.path).metadata();
+            width = metadata.width;
+            height = metadata.height;
+          }
         } catch (error) {
           console.warn('Could not get image metadata:', error);
         }
+      }
+
+      // Determine file path based on storage type
+      let filePath = file.path;
+      if (file.location) {
+        // S3 storage - file.location contains the S3 URL
+        filePath = file.location;
+      } else if (file.key) {
+        // S3 storage with key - construct URL
+        const { getS3BaseUrl } = require('../config/s3');
+        filePath = `${getS3BaseUrl()}/${file.key}`;
       }
 
       // Save to database
@@ -151,9 +169,9 @@ export const uploadMediaFiles = async (req: AuthRequest, res: Response, next: Ne
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING *
       `, [
-        file.filename,
+        file.filename || file.key?.split('/').pop() || `${uuidv4()}${path.extname(file.originalname)}`,
         file.originalname,
-        file.path,
+        filePath,
         file.size,
         file.mimetype,
         fileType,

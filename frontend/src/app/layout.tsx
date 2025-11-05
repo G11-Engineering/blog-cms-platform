@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import ClientAuthProvider from '@/components/ClientAuthProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Navigation } from '@/components/Navigation';
+import { Footer } from '@/components/Footer';
 import { theme } from '@/theme';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
@@ -30,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={inter.className} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <QueryClientProvider client={queryClient}>
           <MantineProvider theme={theme}>
             <ModalsProvider>
@@ -38,7 +39,10 @@ export default function RootLayout({
                 <AuthProvider>
                   <Navigation />
                   <Notifications />
-                  {children}
+                  <div style={{ flex: 1 }}>
+                    {children}
+                  </div>
+                  <Footer />
                 </AuthProvider>
               </ClientAuthProvider>
             </ModalsProvider>

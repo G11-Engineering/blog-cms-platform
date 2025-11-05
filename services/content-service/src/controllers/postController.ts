@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import slugify from 'slugify';
+import axios from 'axios';
 import { getDatabase } from '../config/database';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
@@ -16,39 +17,61 @@ const validateTags = async (tagIds: string[]): Promise<void> => {
     }
   }
   
-  const categoryServiceUrl = process.env.CATEGORY_SERVICE_URL || 'http://localhost:3004';
+  const categoryServiceUrl = process.env.CATEGORY_SERVICE_URL || 'http://category-service:3004';
   const tagValidationPromises = tagIds.map(async (tagId: string) => {
     try {
-      const response = await fetch(`${categoryServiceUrl}/api/tags/${tagId}`, {
-        method: 'GET',
+      // Use axios for better error handling and timeout support
+      const response = await axios.get(`${categoryServiceUrl}/api/tags/${tagId}`, {
+        timeout: 5000, // 5 second timeout
         headers: {
           'Content-Type': 'application/json',
         },
-        // Add timeout to prevent hanging requests
-        signal: AbortSignal.timeout(5000), // 5 second timeout
+        validateStatus: (status) => status < 500, // Don't throw on 4xx errors
       });
       
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error(`Tag with ID ${tagId} not found`);
-        }
-        throw new Error(`Failed to validate tag ${tagId}: ${response.statusText}`);
-      }
-      
-      const tagData = await response.json();
-      if (!tagData.tag) {
+      if (response.status === 404) {
         throw new Error(`Tag with ID ${tagId} not found`);
       }
+      
+      if (response.status !== 200) {
+        throw new Error(`Failed to validate tag ${tagId}: ${response.statusText || 'Unknown error'}`);
+      }
+      
+      const tagData = response.data;
+      if (!tagData || !tagData.tag) {
+        throw new Error(`Tag with ID ${tagId} not found`);
+      }
+      
       if (!tagData.tag.is_active) {
         throw new Error(`Tag "${tagData.tag.name}" is not active`);
       }
       
       return tagId;
     } catch (error: any) {
-      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-        throw new Error(`Timeout while validating tag ${tagId}. Please check if the category service is running.`);
+      // Handle axios timeout errors
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        throw new Error(`Timeout while validating tag ${tagId}. Please check if the category service is running at ${categoryServiceUrl}`);
       }
-      throw new Error(`Invalid tag ID ${tagId}: ${error.message}`);
+      
+      // Handle connection errors
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        throw new Error(`Cannot connect to category service at ${categoryServiceUrl}. Please ensure the service is running.`);
+      }
+      
+      // Handle axios HTTP errors
+      if (error.response) {
+        if (error.response.status === 404) {
+          throw new Error(`Tag with ID ${tagId} not found`);
+        }
+        throw new Error(`Failed to validate tag ${tagId}: ${error.response.statusText || 'Unknown error'}`);
+      }
+      
+      // Handle other errors
+      if (error.message) {
+        throw new Error(`Invalid tag ID ${tagId}: ${error.message}`);
+      }
+      
+      throw new Error(`Invalid tag ID ${tagId}: Unknown error occurred`);
     }
   });
   

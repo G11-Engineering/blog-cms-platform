@@ -1,6 +1,7 @@
 'use client';
 
 import { Container, Group, Button, Text, Box } from '@mantine/core';
+import { IconSettings } from '@tabler/icons-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
@@ -72,6 +73,29 @@ export function Navigation() {
             >
               Tags
             </Button>
+            {isAuthenticated && (
+              <Button 
+                component={Link} 
+                href="/settings" 
+                variant="subtle"
+                c="white"
+                leftSection={<IconSettings size={18} />}
+                style={{ color: 'white' }}
+              >
+                Settings
+              </Button>
+            )}
+            {isAuthenticated && user?.role === 'admin' && (
+              <Button 
+                component={Link} 
+                href="/users" 
+                variant="subtle"
+                c="white"
+                style={{ color: 'white' }}
+              >
+                Users
+              </Button>
+            )}
             
             {isAuthenticated ? (
               <Group>

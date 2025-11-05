@@ -14,8 +14,21 @@ export function useUpdateBlogSettings() {
   const queryClient = useQueryClient();
   
   return useMutation(
-    (data: { blogTitle: string; blogDescription?: string }) => 
-      blogSettingsApi.updateBlogSettings(data),
+    (data: {
+      blogTitle: string;
+      blogDescription?: string;
+      blogLogoUrl?: string;
+      blogFaviconUrl?: string;
+      contactEmail?: string;
+      socialFacebook?: string;
+      socialTwitter?: string;
+      socialLinkedin?: string;
+      socialGithub?: string;
+      seoMetaTitle?: string;
+      seoMetaDescription?: string;
+      seoKeywords?: string;
+      googleAnalyticsId?: string;
+    }) => blogSettingsApi.updateBlogSettings(data),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['blogSettings']);

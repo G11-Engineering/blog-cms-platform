@@ -14,13 +14,16 @@ import { updateUserSchema, updateProfileSchema, changePasswordSchema } from '../
 
 const router = Router();
 
-// All routes require authentication
+// Public route for service-to-service communication (GET user by ID)
+// This allows other services to fetch user details for authentication/authorization
+router.get('/:id', getUserById);
+
+// All other routes require authentication
 router.use(authenticateToken);
 
 // User management routes
 router.get('/', requireAdmin, getUsers);
 router.get('/profile', getUserProfile);
-router.get('/:id', getUserById);
 router.put('/profile', validateRequest(updateProfileSchema), updateUserProfile);
 router.put('/:id', requireEditor, validateRequest(updateUserSchema), updateUser);
 router.delete('/:id', requireAdmin, deleteUser);
