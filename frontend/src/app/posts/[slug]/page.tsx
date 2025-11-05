@@ -6,14 +6,11 @@ import { IconHeart, IconMessageCircle, IconEye, IconCalendar, IconUser, IconEdit
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { useParams, useRouter } from 'next/navigation';
-import { usePosts, usePublishPost, useDeletePost } from '@/hooks/usePosts';
+import { usePostBySlug, usePublishPost, useDeletePost, useUpdatePost } from '@/hooks/usePosts';
 import { useComments, useCreateComment, useLikeComment } from '@/hooks/useComments';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
-import 'highlight.js/styles/github.css';
+// TipTap editor saves HTML, not Markdown, so we render HTML directly
 
 export default function PostPage() {
   const params = useParams();
@@ -23,9 +20,8 @@ export default function PostPage() {
   
   const slug = params.slug as string;
   
-  // Find post by slug (in a real app, you'd have a getPostBySlug function)
-  const { data: posts } = usePosts({ status: 'published' });
-  const post = posts?.posts?.find((p: any) => p.slug === slug);
+  // Fetch the full post with content by slug
+  const { data: post, isLoading: postLoading } = usePostBySlug(slug);
   
   const { data: comments } = useComments({ postId: post?.id });
   const createComment = useCreateComment();
@@ -50,7 +46,7 @@ export default function PostPage() {
   useEffect(() => {
     if (post?.id) {
       // Increment view count
-      fetch(`${process.env.NEXT_PUBLIC_CONTENT_SERVICE_URL}/api/posts/${post.id}/views`, {
+      fetch(`http://localhost:3002/api/posts/${post.id}/views`, {
         method: 'POST',
       }).catch(console.error);
     }
@@ -95,6 +91,16 @@ export default function PostPage() {
       console.error('Failed to delete post:', error);
     }
   };
+
+  if (postLoading) {
+    return (
+      <Container size="md" py="xl">
+        <Stack align="center" gap="md">
+          <Text>Loading post...</Text>
+        </Stack>
+      </Container>
+    );
+  }
 
   if (!post) {
     return (
@@ -156,7 +162,7 @@ export default function PostPage() {
                   variant="outline"
                   size="sm"
                   leftSection={<IconEdit size={16} />}
-                  onClick={() => router.push(`/posts/${post.id}/edit`)}
+                  onClick={() => router.push(`/posts/${post.slug}/edit`)}
                 >
                   Edit
                 </Button>
@@ -199,14 +205,14 @@ export default function PostPage() {
 
         {/* Post Content */}
         <Card withBorder p="xl">
-          <div className="prose prose-lg max-w-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight]}
-            >
-              {post.content}
-            </ReactMarkdown>
-          </div>
+          <div 
+            className="prose prose-lg max-w-none"
+            dangerouslySetInnerHTML={{ __html: post.content || '' }}
+            style={{
+              // Ensure images are responsive
+              maxWidth: '100%',
+            }}
+          />
         </Card>
 
         {/* Tags */}
@@ -265,9 +271,10 @@ export default function PostPage() {
                     </Group>
                   </Group>
                   
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown>{comment.content}</ReactMarkdown>
-                  </div>
+                  <div 
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: comment.content || '' }}
+                  />
                 </Stack>
               </Card>
             ))}

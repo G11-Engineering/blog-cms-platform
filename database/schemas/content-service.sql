@@ -64,6 +64,21 @@ CREATE INDEX idx_post_tags_tag_id ON post_tags(tag_id);
 CREATE INDEX idx_post_views_post_id ON post_views(post_id);
 CREATE INDEX idx_post_views_viewed_at ON post_views(viewed_at);
 
+-- Blog Settings Table
+CREATE TABLE IF NOT EXISTS blog_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    blog_title VARCHAR(200) NOT NULL DEFAULT 'My Blog',
+    blog_description TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by UUID,
+    CONSTRAINT single_row CHECK (id = '00000000-0000-0000-0000-000000000001')
+);
+
+-- Insert default blog settings if not exists
+INSERT INTO blog_settings (id, blog_title, blog_description)
+VALUES ('00000000-0000-0000-0000-000000000001', 'My Blog', 'Welcome to my blog')
+ON CONFLICT (id) DO NOTHING;
+
 -- Triggers for updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$

@@ -1,23 +1,59 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Container, Stack, Title, TextInput, Textarea, Select, MultiSelect, Button, Group, Card, Text, Switch, Grid, Divider } from '@mantine/core';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { Container, Stack, Title, TextInput, Textarea, Select, MultiSelect, Button, Group, Card, Text, Switch, Grid, Divider, Loader, Center } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
-import { useCreatePost } from '@/hooks/usePosts';
+import { useUpdatePost } from '@/hooks/usePosts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from 'react-query';
 
-export default function CreatePostPage() {
+export default function EditPostPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
-  const createPost = useCreatePost();
+  const params = useParams();
+  const { isAuthenticated, isAuthor } = useAuth();
+  const updatePost = useUpdatePost();
   const { data: categories } = useCategories({ limit: 100 });
   const { data: tags } = useTags({ limit: 100 });
+  
+  const slug = params.slug as string;
+  
+  // Fetch the full post with content
+  const { data: postData, isLoading: postLoading } = useQuery({
+    queryKey: ['post', slug],
+    queryFn: async () => {
+      // First, get all posts to find the post ID by slug
+      const postsResponse = await fetch('http://localhost:3002/api/posts?status=published');
+      const postsData = await postsResponse.json();
+      const foundPost = postsData.posts?.find((p: any) => p.slug === slug);
+      
+      if (!foundPost?.id) {
+        throw new Error('Post not found');
+      }
+      
+      // Then fetch the full post with content
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`http://localhost:3002/api/posts/${foundPost.id}`, { headers });
+      if (!response.ok) {
+        throw new Error('Failed to fetch post');
+      }
+      const data = await response.json();
+      return data.post;
+    },
+    enabled: !!slug,
+  });
+  
+  const post = postData;
   
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
@@ -32,6 +68,7 @@ export default function CreatePostPage() {
       metaDescription: '',
       categories: [] as string[],
       tags: [] as string[],
+      status: 'published',
     },
     validate: {
       title: (value) => (!value ? 'Title is required' : null),
@@ -39,40 +76,109 @@ export default function CreatePostPage() {
     },
   });
 
+  // Load post data when available - use a ref to prevent re-loading
+  const postLoadedRef = useRef(false);
+  
+  useEffect(() => {
+    if (post && post.id && !postLoadedRef.current) {
+      console.log('Loading post data:', { 
+        id: post.id, 
+        hasContent: !!post.content, 
+        contentLength: post.content?.length,
+        contentPreview: post.content?.substring(0, 100)
+      });
+      
+      // Set form values, ensuring content is properly set
+      const formValues = {
+        title: post.title || '',
+        content: post.content || '',
+        excerpt: post.excerpt || '',
+        featuredImageUrl: post.featured_image_url || '',
+        metaTitle: post.meta_title || '',
+        metaDescription: post.meta_description || '',
+        categories: post.categories?.map((c: any) => c.id || c) || [],
+        tags: post.tags?.map((t: any) => t.id || t) || [],
+        status: post.status || 'published',
+      };
+      
+      console.log('Setting form values:', {
+        title: formValues.title,
+        hasContent: !!formValues.content,
+        contentLength: formValues.content?.length,
+        contentPreview: formValues.content?.substring(0, 100)
+      });
+      
+      form.setValues(formValues);
+      
+      if (post.scheduled_at) {
+        setIsScheduled(true);
+        setScheduledAt(new Date(post.scheduled_at));
+      }
+      
+      postLoadedRef.current = true;
+    }
+  }, [post, form]);
+
   const handleSubmit = async (values: typeof form.values) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !isAuthor) {
       notifications.show({
-        title: 'Authentication Required',
-        message: 'Please log in to create a post',
+        title: 'Permission Denied',
+        message: 'You do not have permission to edit this post',
+        color: 'red',
+      });
+      return;
+    }
+
+    if (!post?.id) {
+      notifications.show({
+        title: 'Error',
+        message: 'Post not found',
         color: 'red',
       });
       return;
     }
 
     try {
+      // Ensure content is always included, even if empty
       const postData = {
-        ...values,
-        status: (isScheduled ? 'scheduled' : 'published') as 'published' | 'scheduled', // Set status so it shows up immediately
+        title: values.title,
+        content: values.content || '',
+        excerpt: values.excerpt || '',
+        featuredImageUrl: values.featuredImageUrl || '',
+        metaTitle: values.metaTitle || '',
+        metaDescription: values.metaDescription || '',
+        categories: values.categories || [],
+        tags: values.tags || [],
+        status: (isScheduled ? 'scheduled' : values.status) as 'published' | 'scheduled' | 'draft',
         scheduledAt: isScheduled ? scheduledAt?.toISOString() : undefined,
       };
 
-      const result = await createPost.mutateAsync(postData);
+      console.log('Submitting post update:', { 
+        postId: post.id, 
+        hasContent: !!postData.content, 
+        contentLength: postData.content?.length,
+        contentPreview: postData.content?.substring(0, 100)
+      });
+      
+      const result = await updatePost.mutateAsync({ postId: post.id, data: postData });
+      
+      console.log('Update result:', result);
       
       notifications.show({
         title: 'Success!',
-        message: isScheduled ? 'Post scheduled successfully' : 'Post created successfully',
+        message: 'Post updated successfully',
         color: 'green',
       });
       
-      // Wait a moment for the query to invalidate, then navigate
+      // Use the updated post's slug (in case title changed)
+      const updatedSlug = result?.post?.slug || post.slug;
       setTimeout(() => {
-        router.push('/posts');
+        router.push(`/posts/${updatedSlug}`);
       }, 500);
     } catch (error: any) {
-      console.error('Failed to create post:', error);
+      console.error('Failed to update post:', error);
       
-      // Show user-friendly error message
-      const errorMessage = error.message || 'Failed to create post. Please try again.';
+      const errorMessage = error.message || 'Failed to update post. Please try again.';
       
       notifications.show({
         title: 'Error',
@@ -80,49 +186,42 @@ export default function CreatePostPage() {
         color: 'red',
       });
       
-      if (error.message?.includes('401') || error.message?.includes('Authentication')) {
-        // Redirect to login if not authenticated
-        setTimeout(() => router.push('/auth/login'), 2000);
+      // If authentication failed, redirect to login
+      if (errorMessage.includes('Authentication') || errorMessage.includes('log in')) {
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 2000);
       }
     }
   };
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !isAuthor) {
     return (
       <Container size="md" py="xl">
         <Card withBorder p="xl">
           <Stack align="center" gap="md">
-            <Title order={2}>Login Required</Title>
+            <Title order={2}>Permission Denied</Title>
             <Text c="dimmed" ta="center">
-              You need to be logged in to create posts. Please log in with your account or use the demo credentials below.
+              You need to be logged in as an author to edit posts.
             </Text>
-            <Group>
-              <Button component="a" href="/auth/login" variant="filled" size="lg">
-                Login Now
-              </Button>
-              <Button component="a" href="/auth/register" variant="outline" size="lg">
-                Sign Up
-              </Button>
-            </Group>
-            <Card withBorder p="md" bg="blue.0" style={{ width: '100%' }}>
-              <Stack gap="xs">
-                <Text size="sm" fw={500} ta="center">Quick Demo Access</Text>
-                <Text size="xs" c="dimmed" ta="center">
-                  Email: admin@cms.com<br/>
-                  Password: admin123
-                </Text>
-                <Button 
-                  size="sm" 
-                  variant="light" 
-                  fullWidth
-                  onClick={() => window.location.href = '/auth/login'}
-                >
-                  Use Demo Credentials
-                </Button>
-              </Stack>
-            </Card>
+            <Button component="a" href="/auth/login" variant="filled">
+              Login
+            </Button>
           </Stack>
         </Card>
+      </Container>
+    );
+  }
+
+  if (postLoading || !post) {
+    return (
+      <Container size="md" py="xl">
+        <Center>
+          <Stack align="center" gap="md">
+            <Loader size="lg" />
+            <Text>Loading post...</Text>
+          </Stack>
+        </Center>
       </Container>
     );
   }
@@ -132,8 +231,8 @@ export default function CreatePostPage() {
       <Stack gap="xl">
         {/* Header */}
         <div>
-          <Title order={1} size="2.5rem" mb="xs">Create New Post</Title>
-          <Text c="dimmed" size="lg">Write and share your content with the world</Text>
+          <Title order={1} size="2.5rem" mb="xs">Edit Post</Title>
+          <Text c="dimmed" size="lg">Update your post content and settings</Text>
         </div>
 
         <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -153,20 +252,14 @@ export default function CreatePostPage() {
                         style={{ fontSize: '1.1rem' }}
                         {...form.getInputProps('title')}
                       />
-                      <Text size="xs" c="dimmed" mt={4}>
-                        A good title helps readers find your content
-                      </Text>
                     </div>
 
                     <div>
                       <Text fw={600} mb="xs" size="md">Content</Text>
-                      <Text size="xs" c="dimmed" mb="sm">
-                        Write your post content using the rich text editor below
-                      </Text>
                       <TipTapEditor
                         content={form.values.content}
                         onChange={(content) => form.setFieldValue('content', content)}
-                        placeholder="Start writing your post here... You can use formatting, add images, links, and more!"
+                        placeholder="Start writing your post here..."
                       />
                       {form.errors.content && (
                         <Text size="xs" c="red" mt={4}>{form.errors.content}</Text>
@@ -178,15 +271,13 @@ export default function CreatePostPage() {
                 {/* Excerpt */}
                 <Card withBorder shadow="sm" p="lg" radius="md">
                   <Stack gap="sm">
-                    <div>
-                      <Textarea
-                        label="Excerpt"
-                        description="A brief summary of your post (shown in previews and search results)"
-                        placeholder="Write a brief description that will entice readers to click..."
-                        rows={3}
-                        {...form.getInputProps('excerpt')}
-                      />
-                    </div>
+                    <Textarea
+                      label="Excerpt"
+                      description="A brief summary of your post"
+                      placeholder="Write a brief description..."
+                      rows={3}
+                      {...form.getInputProps('excerpt')}
+                    />
                   </Stack>
                 </Card>
               </Stack>
@@ -199,6 +290,16 @@ export default function CreatePostPage() {
                 <Card withBorder shadow="sm" p="lg" radius="md">
                   <Stack gap="md">
                     <Title order={4}>Publish</Title>
+                    
+                    <Select
+                      label="Status"
+                      data={[
+                        { value: 'draft', label: 'Draft' },
+                        { value: 'published', label: 'Published' },
+                        { value: 'archived', label: 'Archived' },
+                      ]}
+                      {...form.getInputProps('status')}
+                    />
                     
                     <Switch
                       label="Schedule Post"
@@ -223,18 +324,18 @@ export default function CreatePostPage() {
                       <Button
                         variant="outline"
                         onClick={() => router.back()}
-                        disabled={createPost.isLoading}
+                        disabled={updatePost.isLoading}
                       >
                         Cancel
                       </Button>
                       
                       <Button
                         type="submit"
-                        loading={createPost.isLoading}
-                        disabled={createPost.isLoading || !form.values.title || !form.values.content || form.values.content.trim() === '<p></p>'}
+                        loading={updatePost.isLoading}
+                        disabled={updatePost.isLoading || !form.values.title || !form.values.content || form.values.content.trim() === '<p></p>'}
                         color="wso2-orange"
                       >
-                        {isScheduled ? 'Schedule' : 'Publish'}
+                        Update
                       </Button>
                     </Group>
                   </Stack>
@@ -301,9 +402,6 @@ export default function CreatePostPage() {
                         />
                       </div>
                     )}
-                    <Text size="xs" c="dimmed">
-                      Add a featured image to make your post stand out
-                    </Text>
                   </Stack>
                 </Card>
 
@@ -311,9 +409,6 @@ export default function CreatePostPage() {
                 <Card withBorder shadow="sm" p="lg" radius="md">
                   <Stack gap="md">
                     <Title order={4}>SEO Settings</Title>
-                    <Text size="xs" c="dimmed" mb="sm">
-                      Improve how your post appears in search results
-                    </Text>
                     
                     <TextInput
                       label="Meta Title"
@@ -337,3 +432,4 @@ export default function CreatePostPage() {
     </Container>
   );
 }
+

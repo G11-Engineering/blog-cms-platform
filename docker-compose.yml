@@ -103,8 +103,11 @@ services:
       NODE_ENV: development
       PORT: 3002
       DATABASE_URL: postgresql://content_service:content_password@postgres-content:5432/content_service
+      CATEGORY_SERVICE_URL: http://category-service:3004
+      JWT_SECRET: your-super-secret-jwt-key
     depends_on:
       - postgres-content
+      - category-service
     networks:
       - cms-network
     volumes:

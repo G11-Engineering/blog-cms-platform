@@ -1,11 +1,58 @@
 'use client';
 
-import { Container, Stack, Title, Text, Card, Switch, Select, NumberInput, Button, Group, TextInput, Grid, Paper, Badge, Alert } from '@mantine/core';
-import { IconSettings, IconPalette, IconLayout, IconBell, IconShield, IconDatabase, IconDeviceFloppy, IconRefresh, IconMoon, IconSun, IconDeviceDesktop } from '@tabler/icons-react';
+import { Container, Stack, Title, Text, Card, Switch, Select, NumberInput, Button, Group, TextInput, Grid, Paper, Badge, Alert, Textarea, Loader } from '@mantine/core';
+import { IconSettings, IconPalette, IconLayout, IconBell, IconShield, IconDatabase, IconDeviceFloppy, IconRefresh, IconMoon, IconSun, IconDeviceDesktop, IconEdit } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { notifications } from '@mantine/notifications';
+import { useBlogSettings, useUpdateBlogSettings } from '@/hooks/useBlogSettings';
+import { useForm } from '@mantine/form';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
+  const { isAuthenticated } = useAuth();
+  const { data: blogSettingsData, isLoading: isLoadingBlogSettings } = useBlogSettings();
+  const updateBlogSettings = useUpdateBlogSettings();
+  
+  const blogSettingsForm = useForm({
+    initialValues: {
+      blogTitle: '',
+      blogDescription: '',
+    },
+    validate: {
+      blogTitle: (value) => (!value || value.trim().length === 0 ? 'Blog title is required' : null),
+    },
+  });
+
+  // Update form when blog settings are loaded
+  useEffect(() => {
+    if (blogSettingsData?.settings) {
+      blogSettingsForm.setValues({
+        blogTitle: blogSettingsData.settings.blog_title || '',
+        blogDescription: blogSettingsData.settings.blog_description || '',
+      });
+    }
+  }, [blogSettingsData]);
+
+  const handleBlogSettingsSubmit = async (values: typeof blogSettingsForm.values) => {
+    if (!isAuthenticated) {
+      notifications.show({
+        title: 'Authentication Required',
+        message: 'Please log in to update blog settings',
+        color: 'red',
+      });
+      return;
+    }
+
+    try {
+      await updateBlogSettings.mutateAsync({
+        blogTitle: values.blogTitle,
+        blogDescription: values.blogDescription,
+      });
+    } catch (error) {
+      // Error is handled by the mutation
+    }
+  };
+
   const [settings, setSettings] = useState({
     // Theme Settings
     theme: 'light',
@@ -138,6 +185,64 @@ export default function SettingsPage() {
 
         {/* Settings Sections */}
         <Grid>
+          {/* Blog Settings */}
+          <Grid.Col span={12}>
+            <Card withBorder shadow="sm" p="lg" radius="lg">
+              <Stack gap="md">
+                <Group>
+                  <IconEdit size={24} color="#ff8c00" />
+                  <Title order={3} c="wso2-black.9">Blog Settings</Title>
+                </Group>
+                
+                {isLoadingBlogSettings ? (
+                  <Group justify="center" p="xl">
+                    <Loader size="md" />
+                  </Group>
+                ) : (
+                  <form onSubmit={blogSettingsForm.onSubmit(handleBlogSettingsSubmit)}>
+                    <Stack gap="md">
+                      <TextInput
+                        label="Blog Title"
+                        description="The title of your blog (displayed in the header and meta tags)"
+                        placeholder="My Awesome Blog"
+                        required
+                        maxLength={200}
+                        {...blogSettingsForm.getInputProps('blogTitle')}
+                      />
+                      
+                      <Textarea
+                        label="Blog Description"
+                        description="A brief description of your blog (used in meta tags and about sections)"
+                        placeholder="Welcome to my blog where I share my thoughts..."
+                        rows={4}
+                        maxLength={1000}
+                        {...blogSettingsForm.getInputProps('blogDescription')}
+                      />
+                      
+                      <Group justify="flex-end">
+                        <Button
+                          type="submit"
+                          leftSection={<IconDeviceFloppy size={16} />}
+                          loading={updateBlogSettings.isLoading}
+                          disabled={!isAuthenticated}
+                          color="wso2-orange"
+                        >
+                          Save Blog Settings
+                        </Button>
+                      </Group>
+                      
+                      {!isAuthenticated && (
+                        <Alert color="yellow" title="Authentication Required">
+                          You need to be logged in to update blog settings.
+                        </Alert>
+                      )}
+                    </Stack>
+                  </form>
+                )}
+              </Stack>
+            </Card>
+          </Grid.Col>
+
           {/* Theme Settings */}
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Card withBorder shadow="sm" p="lg" radius="lg">

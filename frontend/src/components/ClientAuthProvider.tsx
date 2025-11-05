@@ -13,13 +13,23 @@ export default function ClientAuthProvider({ children }: ClientAuthProviderProps
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        // Only set mounted in browser environment
         setMounted(true);
     }, []);
 
-    if (!mounted) {
-        return <div>Loading...</div>;
+    // During SSR, return children without Asgardeo provider
+    // Asgardeo is only needed for client-side auth, which we're not actively using
+    if (typeof window === 'undefined') {
+        return <>{children}</>;
     }
 
+    // If not mounted yet, return children (will mount on client)
+    if (!mounted) {
+        return <>{children}</>;
+    }
+
+    // Only wrap with Asgardeo provider if mounted and in browser
+    // Note: We're using local auth primarily, so this is optional
     return (
         <AuthProvider config={asgardeoConfig}>
             {children}

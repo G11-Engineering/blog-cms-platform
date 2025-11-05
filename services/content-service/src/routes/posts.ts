@@ -31,6 +31,11 @@ const router = Router();
 
 // Public routes
 router.get('/', getPosts);
+router.get('/:id', getPostById);
+
+// Views (public - no auth required)
+router.get('/:id/views', getPostViews);
+router.post('/:id/views', incrementPostViews);
 
 // Scheduled posts (public for cron jobs)
 router.get('/scheduled/ready', getScheduledPosts);
@@ -46,9 +51,8 @@ router.use(authenticateToken);
 router.get('/drafts', requireAuthor, getDrafts);
 router.post('/drafts', requireAuthor, saveDraft);
 router.delete('/drafts/:id', requireAuthor, deleteDraft);
-router.get('/:id', getPostById);
 router.put('/:id', requireAuthor, validateRequest(updatePostSchema), updatePost);
-router.delete('/:id', requireEditor, deletePost);
+router.delete('/:id', requireAuthor, deletePost);
 
 // Publishing
 router.post('/:id/publish', requireAuthor, publishPost);
@@ -59,9 +63,5 @@ router.get('/:id/versions', requireAuthor, getPostVersions);
 router.get('/:id/versions/:versionNumber', requireAuthor, getPostVersion);
 router.post('/:id/versions', requireAuthor, createPostVersion);
 router.post('/:id/versions/:versionNumber/restore', requireAuthor, restorePostVersion);
-
-// Views
-router.get('/:id/views', getPostViews);
-router.post('/:id/views', incrementPostViews);
 
 export { router as postRoutes };

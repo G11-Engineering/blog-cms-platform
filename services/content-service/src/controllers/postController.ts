@@ -4,6 +4,57 @@ import { getDatabase } from '../config/database';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 
+// Helper function to validate tags exist and are active
+const validateTags = async (tagIds: string[]): Promise<void> => {
+  if (tagIds.length === 0) return;
+  
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  for (const tagId of tagIds) {
+    if (!uuidRegex.test(tagId)) {
+      throw new Error(`Invalid tag ID format: ${tagId}`);
+    }
+  }
+  
+  const categoryServiceUrl = process.env.CATEGORY_SERVICE_URL || 'http://localhost:3004';
+  const tagValidationPromises = tagIds.map(async (tagId: string) => {
+    try {
+      const response = await fetch(`${categoryServiceUrl}/api/tags/${tagId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Add timeout to prevent hanging requests
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`Tag with ID ${tagId} not found`);
+        }
+        throw new Error(`Failed to validate tag ${tagId}: ${response.statusText}`);
+      }
+      
+      const tagData = await response.json();
+      if (!tagData.tag) {
+        throw new Error(`Tag with ID ${tagId} not found`);
+      }
+      if (!tagData.tag.is_active) {
+        throw new Error(`Tag "${tagData.tag.name}" is not active`);
+      }
+      
+      return tagId;
+    } catch (error: any) {
+      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        throw new Error(`Timeout while validating tag ${tagId}. Please check if the category service is running.`);
+      }
+      throw new Error(`Invalid tag ID ${tagId}: ${error.message}`);
+    }
+  });
+  
+  await Promise.all(tagValidationPromises);
+};
+
 // Helper function to get post with all relationships
 const getPostWithRelations = async (client: any, postId: string) => {
   const postResult = await client.query(`
@@ -210,8 +261,32 @@ export const getPostById = async (req: Request, res: Response, next: NextFunctio
     }
 
     const post = result.rows[0];
-    post.categories = []; // Will be populated by category service integration
-    post.tags = []; // Will be populated by tag service integration
+    
+    // Get categories
+    try {
+      const categoriesResult = await db.query(`
+        SELECT c.id, c.name, c.slug
+        FROM categories c
+        JOIN post_categories pc ON c.id = pc.category_id
+        WHERE pc.post_id = $1
+      `, [id]);
+      post.categories = categoriesResult.rows;
+    } catch (error) {
+      post.categories = [];
+    }
+
+    // Get tags
+    try {
+      const tagsResult = await db.query(`
+        SELECT t.id, t.name, t.slug
+        FROM tags t
+        JOIN post_tags pt ON t.id = pt.tag_id
+        WHERE pt.post_id = $1
+      `, [id]);
+      post.tags = tagsResult.rows;
+    } catch (error) {
+      post.tags = [];
+    }
 
     res.json({ post });
   } catch (error) {
@@ -239,8 +314,17 @@ export const createPost = async (req: AuthRequest, res: Response, next: NextFunc
     } = req.body;
 
     // Validate required fields
-    if (!title || !content) {
-      throw createError('Title and content are required', 400);
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      throw createError('Title is required and cannot be empty', 400);
+    }
+    
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      throw createError('Content is required and cannot be empty', 400);
+    }
+    
+    // Validate title length
+    if (title.trim().length > 500) {
+      throw createError('Title must be 500 characters or less', 400);
     }
 
     // Generate unique slug
@@ -296,12 +380,18 @@ export const createPost = async (req: AuthRequest, res: Response, next: NextFunc
 
     // Add tags with validation
     if (tags && tags.length > 0) {
-      for (const tagId of tags) {
-        // Validate tag exists (you might want to check against tag service)
-        await client.query(
-          'INSERT INTO post_tags (post_id, tag_id) VALUES ($1, $2)',
-          [post.id, tagId]
-        );
+      try {
+        await validateTags(tags);
+        
+        // If all validations pass, insert tags
+        for (const tagId of tags) {
+          await client.query(
+            'INSERT INTO post_tags (post_id, tag_id) VALUES ($1, $2)',
+            [post.id, tagId]
+          );
+        }
+      } catch (error: any) {
+        throw createError(error.message || 'Failed to validate tags', 400);
       }
     }
 
@@ -355,7 +445,11 @@ export const updatePost = async (req: AuthRequest, res: Response, next: NextFunc
       throw createError('Post not found', 404);
     }
 
-    if (existingPost.rows[0].author_id !== req.user!.id && !['admin', 'editor'].includes(req.user!.role)) {
+    // Allow update if user is the author OR is admin/editor
+    const isAuthor = existingPost.rows[0].author_id === req.user!.id;
+    const isAdminOrEditor = ['admin', 'editor'].includes(req.user!.role);
+    
+    if (!isAuthor && !isAdminOrEditor) {
       throw createError('Not authorized to update this post', 403);
     }
 
@@ -405,7 +499,8 @@ export const updatePost = async (req: AuthRequest, res: Response, next: NextFunc
       updateFields.push(`title = $${paramCount}`);
       updateValues.push(title);
     }
-    if (content !== undefined) {
+    // Always update content if provided (even if empty string)
+    if (content !== undefined && content !== null) {
       paramCount++;
       updateFields.push(`content = $${paramCount}`);
       updateValues.push(content);
@@ -436,8 +531,8 @@ export const updatePost = async (req: AuthRequest, res: Response, next: NextFunc
       updateValues.push(status);
       
       // Set published_at if status is being changed to published
+      // Note: CURRENT_TIMESTAMP is a SQL function, not a parameter, so don't increment paramCount
       if (status === 'published') {
-        paramCount++;
         updateFields.push(`published_at = CURRENT_TIMESTAMP`);
       }
     }
@@ -448,7 +543,10 @@ export const updatePost = async (req: AuthRequest, res: Response, next: NextFunc
       updateValues.push(slug);
     }
 
+    // updated_at is also a SQL function, not a parameter
     updateFields.push('updated_at = CURRENT_TIMESTAMP');
+    
+    // Add id as the last parameter
     paramCount++;
     updateValues.push(id);
 
@@ -476,11 +574,18 @@ export const updatePost = async (req: AuthRequest, res: Response, next: NextFunc
     if (tags !== undefined) {
       await client.query('DELETE FROM post_tags WHERE post_id = $1', [id]);
       if (tags.length > 0) {
-        for (const tagId of tags) {
-          await client.query(
-            'INSERT INTO post_tags (post_id, tag_id) VALUES ($1, $2)',
-            [id, tagId]
-          );
+        try {
+          await validateTags(tags);
+          
+          // If all validations pass, insert tags
+          for (const tagId of tags) {
+            await client.query(
+              'INSERT INTO post_tags (post_id, tag_id) VALUES ($1, $2)',
+              [id, tagId]
+            );
+          }
+        } catch (error: any) {
+          throw createError(error.message || 'Failed to validate tags', 400);
         }
       }
     }
@@ -504,25 +609,41 @@ export const updatePost = async (req: AuthRequest, res: Response, next: NextFunc
 };
 
 export const deletePost = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const client = await getDatabase().connect();
+  
   try {
+    await client.query('BEGIN');
+    
     const { id } = req.params;
-    const db = getDatabase();
 
     // Check if post exists and user has permission
-    const existingPost = await db.query('SELECT author_id FROM posts WHERE id = $1', [id]);
+    const existingPost = await client.query('SELECT author_id FROM posts WHERE id = $1', [id]);
     if (existingPost.rows.length === 0) {
       throw createError('Post not found', 404);
     }
 
-    if (existingPost.rows[0].author_id !== req.user!.id && !['admin', 'editor'].includes(req.user!.role)) {
+    const isAuthor = existingPost.rows[0].author_id === req.user!.id;
+    const isAdminOrEditor = ['admin', 'editor'].includes(req.user!.role);
+    
+    if (!isAuthor && !isAdminOrEditor) {
       throw createError('Not authorized to delete this post', 403);
     }
 
-    await db.query('DELETE FROM posts WHERE id = $1', [id]);
+    // Delete related records explicitly (though CASCADE should handle this)
+    // This ensures clean deletion even if foreign keys aren't set up correctly
+    await client.query('DELETE FROM post_views WHERE post_id = $1', [id]);
+    await client.query('DELETE FROM post_tags WHERE post_id = $1', [id]);
+    await client.query('DELETE FROM post_categories WHERE post_id = $1', [id]);
+    await client.query('DELETE FROM post_versions WHERE post_id = $1', [id]);
+    await client.query('DELETE FROM posts WHERE id = $1', [id]);
 
+    await client.query('COMMIT');
     res.json({ message: 'Post deleted successfully' });
   } catch (error) {
+    await client.query('ROLLBACK');
     next(error);
+  } finally {
+    client.release();
   }
 };
 
@@ -1054,11 +1175,18 @@ export const saveDraft = async (req: AuthRequest, res: Response, next: NextFunct
       }
 
       if (tags.length > 0) {
-        for (const tagId of tags) {
-          await db.query(
-            'INSERT INTO post_tags (post_id, tag_id) VALUES ($1, $2)',
-            [newPostId, tagId]
-          );
+        try {
+          await validateTags(tags);
+          
+          // If all validations pass, insert tags
+          for (const tagId of tags) {
+            await db.query(
+              'INSERT INTO post_tags (post_id, tag_id) VALUES ($1, $2)',
+              [newPostId, tagId]
+            );
+          }
+        } catch (error: any) {
+          throw createError(error.message || 'Failed to validate tags', 400);
         }
       }
 
