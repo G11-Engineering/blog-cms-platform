@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
+import { useAuthContext as useAsgardeoAuth } from '@asgardeo/auth-react';
 import { authApi } from '@/services/authApi';
 
 interface User {
@@ -19,7 +20,8 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
+  asgardeoSignIn: () => Promise<void>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isEditor: boolean;
@@ -37,36 +39,102 @@ interface RegisterData {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Intercept Asgardeo authentication state
+  const { state: asgardeoState, signIn: asgardeoSignIn, signOut: asgardeoSignOut, getIDToken } = useAsgardeoAuth();
+
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [processingAuth, setProcessingAuth] = useState(false);
   const router = useRouter();
 
+  // Load user from localStorage on mount
   useEffect(() => {
-    // Only access localStorage in browser environment
-    if (typeof window === 'undefined') {
-      setLoading(false);
-      return;
-    }
+    const loadUser = async () => {
+      // Only access localStorage in browser environment
+      if (typeof window === 'undefined') {
+        setLoading(false);
+        return;
+      }
 
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Verify token and get user data
-      authApi.getProfile()
-        .then((userData) => {
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+
+      if (token && storedUser) {
+        try {
+          // First set user from localStorage immediately for faster UI update
+          setUser(JSON.parse(storedUser));
+          setLoading(false);
+
+          // Then verify token and get fresh data from backend
+          const userData = await authApi.getProfile();
           setUser(userData);
-        })
-        .catch(() => {
+        } catch (error) {
+          console.error('Failed to load user profile:', error);
           if (typeof window !== 'undefined') {
             localStorage.removeItem('token');
+            localStorage.removeItem('user');
           }
-        })
-        .finally(() => {
+          setUser(null);
           setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
   }, []);
+
+  // Automatically handle Asgardeo authentication completion
+  useEffect(() => {
+    const handleAsgardeoAuth = async () => {
+      // Only process if:
+      // 1. Asgardeo says we're authenticated
+      // 2. We don't have a local user yet
+      // 3. We're not already processing
+      if (asgardeoState.isAuthenticated && !user && !processingAuth) {
+        setProcessingAuth(true);
+        console.log('✅ Asgardeo authentication detected, exchanging tokens...');
+
+        try {
+          // Get ID token from Asgardeo
+          const idToken = await getIDToken();
+
+          if (idToken) {
+            console.log('✅ Received Asgardeo ID token, exchanging with backend...');
+
+            // Exchange Asgardeo token for our local JWT
+            const response = await authApi.asgardeoLogin(idToken);
+
+            // Store the local JWT token and user
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('token', response.token);
+              localStorage.setItem('user', JSON.stringify(response.user));
+            }
+
+            setUser(response.user);
+
+            notifications.show({
+              title: 'Success',
+              message: 'Signed in successfully with Asgardeo',
+              color: 'green',
+            });
+          }
+        } catch (error: any) {
+          console.error('❌ Authentication error:', error);
+          notifications.show({
+            title: 'Authentication Error',
+            message: error.response?.data?.error?.message || 'Failed to complete authentication',
+            color: 'red',
+          });
+        } finally {
+          setProcessingAuth(false);
+        }
+      }
+    };
+
+    handleAsgardeoAuth();
+  }, [asgardeoState.isAuthenticated, user, processingAuth, getIDToken]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -112,17 +180,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
+  const handleAsgardeoSignIn = async () => {
+    try {
+      await asgardeoSignIn();
+    } catch (error) {
+      console.error('❌ Failed to initiate Asgardeo sign-in:', error);
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to initiate sign in',
+        color: 'red',
+      });
+      throw error;
     }
-    setUser(null);
-    router.push('/');
-    notifications.show({
-      title: 'Success',
-      message: 'Logged out successfully',
-      color: 'blue',
-    });
+  };
+
+  const logout = async () => {
+    try {
+      // Sign out from Asgardeo
+      await asgardeoSignOut();
+
+      // Clear local storage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+
+      // Clear local state
+      setUser(null);
+
+      // Redirect to home
+      router.push('/');
+
+      notifications.show({
+        title: 'Success',
+        message: 'Logged out successfully',
+        color: 'blue',
+      });
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      // Even if Asgardeo logout fails, clear local state
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      setUser(null);
+      router.push('/');
+    }
   };
 
   const isAuthenticated = !!user;
@@ -137,6 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         login,
         register,
+        asgardeoSignIn: handleAsgardeoSignIn,
         logout,
         isAuthenticated,
         isAdmin,

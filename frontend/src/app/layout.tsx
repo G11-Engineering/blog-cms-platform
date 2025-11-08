@@ -1,19 +1,25 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { Inter } from 'next/font/google';
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import ClientAuthProvider from '@/components/ClientAuthProvider';
-import { AuthProvider } from '@/contexts/AuthContext';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { theme } from '@/theme';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 
 const inter = Inter({ subsets: ['latin'] });
+
+// Dynamically import ClientAuthProvider to avoid SSR issues with Asgardeo
+const ClientAuthProvider = dynamic(
+  () => import('@/components/ClientAuthProvider'),
+  { ssr: false, loading: () => <div>Loading...</div> }
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
