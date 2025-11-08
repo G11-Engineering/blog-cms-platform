@@ -103,13 +103,48 @@ npm run dev:frontend  # Frontend (port 3000)
 | Category Service | http://localhost:3004 | Categories & tags |
 | Comment Service | http://localhost:3005 | Comments & moderation |
 
-## 🔐 Default Credentials
+## 🔐 Authentication & User Registration
 
-A default admin user is created automatically:
+This platform uses **WSO2 Asgardeo** for secure identity management and authentication.
+
+### User Registration
+
+New users can register via Asgardeo SSO self-registration:
+
+1. Click **"Sign Up"** in the navigation bar
+2. You'll be redirected to Asgardeo's secure registration page
+3. Fill in your details and verify your email
+4. Return to the platform and click **"Login"** to access via SSO
+5. All new users are automatically assigned the **"Author"** role
+
+### User Roles
+
+- **Admin** - Full platform access including user management
+- **Editor** - Manage all content and moderate comments
+- **Author** - Create and manage own blog posts (default for new users)
+- **Reader** - View published content
+
+### Authentication Flow
+
+1. **Self-Registration**: Users register via Asgardeo
+2. **Email Verification**: Asgardeo handles email verification
+3. **Group Assignment**: New users are added to "CMS_Authors" group automatically
+4. **JIT Provisioning**: On first login, user account is created locally with "author" role
+5. **Role Mapping**: Asgardeo groups map to local roles:
+   - Groups containing "admin" → Admin role
+   - Groups containing "editor" → Editor role
+   - Groups containing "author" → Author role
+   - Default → Author role
+
+### Default Admin User
+
+For testing and initial setup, a default admin user is available:
 
 - **Email:** admin@cms.com
 - **Password:** admin123
 - **Role:** admin
+
+**Note:** This is for local development only. Remove or change in production!
 
 ## 📁 Project Structure
 
@@ -260,7 +295,45 @@ NEXT_PUBLIC_CONTENT_SERVICE_URL=http://localhost:3002
 NEXT_PUBLIC_MEDIA_SERVICE_URL=http://localhost:3003
 NEXT_PUBLIC_CATEGORY_SERVICE_URL=http://localhost:3004
 NEXT_PUBLIC_COMMENT_SERVICE_URL=http://localhost:3005
+
+# Asgardeo Configuration
+NEXT_PUBLIC_ASGARDEO_BASE_URL=https://api.asgardeo.io/t/g11engineering
+NEXT_PUBLIC_ASGARDEO_CLIENT_ID=Y4Yrhdn2PcIxQRLfWYDdEycYTfUa
+NEXT_PUBLIC_ASGARDEO_REDIRECT_URL=http://localhost:3000
+NEXT_PUBLIC_ASGARDEO_SCOPE=openid profile email groups
 ```
+
+### Asgardeo Configuration
+
+To enable user registration and authentication via Asgardeo:
+
+1. **Enable Self-Registration**
+   - Log into Asgardeo Console: https://console.asgardeo.io/
+   - Navigate to your application
+   - Go to "Login Flow" tab
+   - Enable "Self Registration"
+   - Configure email verification (recommended)
+
+2. **Create User Groups**
+   - Navigate to User Management → Groups
+   - Create the following groups:
+     - `CMS_Authors` - Default group for new users (author role)
+     - `CMS_Editors` - For content editors (editor role)
+     - `CMS_Admins` - For platform administrators (admin role)
+
+3. **Configure Automatic Group Assignment**
+   - Navigate to Workflows → Self Registration
+   - Add post-registration action: "Add to Group"
+   - Select group: `CMS_Authors`
+   - This ensures all self-registered users get the author role
+
+4. **Update Application Scopes**
+   - Navigate to Applications → Your App → Protocol
+   - Ensure these scopes are enabled:
+     - `openid` (required)
+     - `profile` (required)
+     - `email` (required)
+     - `groups` (required for role mapping)
 
 ## 🧪 Testing
 

@@ -83,14 +83,17 @@ services:
       PORT: 3001
       DATABASE_URL: postgresql://user_service:user_password@postgres-user:5432/user_service
       JWT_SECRET: your-super-secret-jwt-key
+      # Asgardeo Management API Configuration (for user status sync)
+      ASGARDEO_BASE_URL: https://api.asgardeo.io/t/g11engineering
+      ASGARDEO_CLIENT_ID: Z4uhhDswzZBUBcJX9caVDFLmys0a
+      ASGARDEO_CLIENT_SECRET: qYv5fgcnc8_rgfsfgEQvkZh1zVZtmXB9gvYNoAw2pnsa
+      ASGARDEO_ORG_NAME: g11engineering
     depends_on:
       - postgres-user
     networks:
       - cms-network
     volumes:
-      - ./services/user-service:/app
       - ./database:/database
-      - /app/node_modules
 
   # Content Service
   content-service:
@@ -143,6 +146,7 @@ services:
       - ./services/media-service:/app
       - ./database:/database
       - /app/node_modules
+      - /app/dist
       - media_uploads:/app/uploads
 
   # Category Service
@@ -185,6 +189,7 @@ services:
       - ./services/comment-service:/app
       - ./database:/database
       - /app/node_modules
+      - /app/dist
 
   # Frontend
   frontend:
