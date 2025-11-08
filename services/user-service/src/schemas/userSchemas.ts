@@ -2,7 +2,7 @@ import Joi from 'joi';
 
 export const updateUserSchema = Joi.object({
   firstName: Joi.string().max(100).required(),
-  lastName: Joi.string().max(100).required(),
+  lastName: Joi.string().max(100).allow('').required(),
   role: Joi.string().valid('reader', 'author', 'editor', 'admin').required(),
   isActive: Joi.boolean().required()
 });

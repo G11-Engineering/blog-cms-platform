@@ -103,13 +103,51 @@ npm run dev:frontend  # Frontend (port 3000)
 | Category Service | http://localhost:3004 | Categories & tags |
 | Comment Service | http://localhost:3005 | Comments & moderation |
 
-## 🔐 Default Credentials
+## 🔐 Authentication & Authorization
 
-A default admin user is created automatically:
+This platform uses **WSO2 Asgardeo** for secure authentication (2FA) while managing roles locally.
+
+### User Registration
+
+New users can register via Asgardeo SSO:
+
+1. Click **"Sign Up"** in the navigation bar
+2. Fill in your details via Asgardeo's secure registration
+3. Verify your email
+4. Login with Asgardeo SSO
+
+All new users receive the **"reader"** role by default. Admins can upgrade roles via the admin panel.
+
+### User Roles
+
+- **Admin** - Full platform access including user management
+- **Editor** - Manage all content and moderate comments
+- **Author** - Create and manage own blog posts
+- **Reader** - View published content (default for new users)
+
+### Authentication Architecture
+
+**Asgardeo is used ONLY for authentication (2FA), NOT for role management.**
+
+1. **Registration**: Users sign up via Asgardeo
+2. **JIT Provisioning**: On first login, local account created with "reader" role
+3. **Role Management**: Admins assign roles (author/editor/admin) via admin panel
+4. **User Status Sync**: When admin deactivates a user, their Asgardeo account is locked automatically
+
+**Why this approach?**
+- Asgardeo provides secure 2FA authentication
+- Local role management allows flexible, blog-specific permissions
+- User status syncs to Asgardeo to prevent locked-out users from accessing via SSO
+
+### Default Admin User
+
+For initial setup, a default admin user is available:
 
 - **Email:** admin@cms.com
 - **Password:** admin123
 - **Role:** admin
+
+**Note:** For local development only. Change in production!
 
 ## 📁 Project Structure
 
@@ -212,7 +250,9 @@ Each service exposes REST APIs:
 
 ### Environment Variables
 
-Create `.env` files in each service directory:
+**Important:** Copy `.env.example` to `.env` in the project root and fill in your credentials. See [SETUP.md](SETUP.md) for detailed instructions.
+
+Example environment variables for each service:
 
 #### User Service (.env)
 ```env
@@ -221,6 +261,16 @@ PORT=3001
 DATABASE_URL=postgresql://user_service:user_password@localhost:5433/user_service
 JWT_SECRET=your-super-secret-jwt-key
 JWT_EXPIRES_IN=7d
+
+# Asgardeo SSO Configuration
+ASGARDEO_BASE_URL=https://api.asgardeo.io/t/your-org-name
+ASGARDEO_CLIENT_ID=your-frontend-client-id
+ASGARDEO_CLIENT_SECRET=your-frontend-client-secret
+ASGARDEO_ORG_NAME=your-org-name
+
+# Asgardeo M2M Configuration (User Status Sync)
+ASGARDEO_M2M_CLIENT_ID=your-m2m-client-id
+ASGARDEO_M2M_CLIENT_SECRET=your-m2m-client-secret
 ```
 
 #### Content Service (.env)
@@ -260,7 +310,44 @@ NEXT_PUBLIC_CONTENT_SERVICE_URL=http://localhost:3002
 NEXT_PUBLIC_MEDIA_SERVICE_URL=http://localhost:3003
 NEXT_PUBLIC_CATEGORY_SERVICE_URL=http://localhost:3004
 NEXT_PUBLIC_COMMENT_SERVICE_URL=http://localhost:3005
+
+# Asgardeo Configuration
+NEXT_PUBLIC_ASGARDEO_BASE_URL=https://api.asgardeo.io/t/your-org-name
+NEXT_PUBLIC_ASGARDEO_CLIENT_ID=your-frontend-client-id
+NEXT_PUBLIC_ASGARDEO_REDIRECT_URL=http://localhost:3000
+NEXT_PUBLIC_ASGARDEO_SCOPE=openid profile email
 ```
+
+### Asgardeo Configuration
+
+For detailed Asgardeo setup instructions, see [SETUP.md](SETUP.md).
+
+Quick overview:
+
+1. **Create Asgardeo Organization**
+   - Sign up at https://console.asgardeo.io/
+   - Create a new organization
+
+2. **Create Frontend Application (Traditional Web Application)**
+   - Navigate to Applications → New Application
+   - Select "Traditional Web Application"
+   - Configure authorized redirect URLs
+   - Enable self-registration in "Login Flow" tab
+   - Note the Client ID and Client Secret
+
+3. **Create M2M Application (for User Sync)**
+   - Navigate to Applications → New Application
+   - Select "Machine to Machine"
+   - Grant API scopes: `internal_user_mgt_update`, `internal_user_mgt_view`
+   - Enable SCIM2 Users API authorization
+   - Note the Client ID and Client Secret
+
+4. **Configure Environment Variables**
+   - Copy `.env.example` to `.env`
+   - Fill in your Asgardeo credentials
+   - See [SETUP.md](SETUP.md) for detailed instructions
+
+**Important:** Asgardeo is used ONLY for 2FA authentication. Roles are managed locally in the admin panel, NOT via Asgardeo groups
 
 ## 🧪 Testing
 

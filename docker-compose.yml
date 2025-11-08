@@ -81,16 +81,21 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3001
-      DATABASE_URL: postgresql://user_service:user_password@postgres-user:5432/user_service
-      JWT_SECRET: your-super-secret-jwt-key
+      DATABASE_URL: postgresql://user_service:${POSTGRES_USER_PASSWORD:-user_password}@postgres-user:5432/user_service
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      # Asgardeo SSO Configuration (Frontend Authentication)
+      ASGARDEO_BASE_URL: https://api.asgardeo.io/t/${ASGARDEO_ORG_NAME:-}
+      ASGARDEO_CLIENT_ID: ${ASGARDEO_CLIENT_ID:-}
+      # Asgardeo M2M Configuration (User Status Sync)
+      ASGARDEO_M2M_CLIENT_ID: ${ASGARDEO_M2M_CLIENT_ID:-}
+      ASGARDEO_M2M_CLIENT_SECRET: ${ASGARDEO_M2M_CLIENT_SECRET:-}
+      ASGARDEO_ORG_NAME: ${ASGARDEO_ORG_NAME:-}
     depends_on:
       - postgres-user
     networks:
       - cms-network
     volumes:
-      - ./services/user-service:/app
       - ./database:/database
-      - /app/node_modules
 
   # Content Service
   content-service:
@@ -143,6 +148,7 @@ services:
       - ./services/media-service:/app
       - ./database:/database
       - /app/node_modules
+      - /app/dist
       - media_uploads:/app/uploads
 
   # Category Service
@@ -185,6 +191,7 @@ services:
       - ./services/comment-service:/app
       - ./database:/database
       - /app/node_modules
+      - /app/dist
 
   # Frontend
   frontend:
