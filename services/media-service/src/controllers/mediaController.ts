@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDatabase } from '../config/database';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
+import { getStorageService } from '../config/storage';
 
 export const getMediaFiles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -111,6 +112,7 @@ export const uploadMediaFiles = async (req: AuthRequest, res: Response, next: Ne
     const files = req.files as Express.Multer.File[];
     const { altText, caption, isPublic = true } = req.body;
     const db = getDatabase();
+    const storageService = getStorageService();
 
     if (!files || files.length === 0) {
       throw createError('No files uploaded', 400);
@@ -129,49 +131,35 @@ export const uploadMediaFiles = async (req: AuthRequest, res: Response, next: Ne
         fileType = 'audio';
       }
 
+      // Generate unique key for storage
+      const fileExtension = path.extname(file.originalname);
+      const storageKey = `${uuidv4()}${fileExtension}`;
+
       // Get image dimensions if it's an image
       let width = null;
       let height = null;
       if (fileType === 'image') {
         try {
-          // For S3 uploads, file.buffer is available; for local, use file.path
-          if (file.buffer) {
-            const metadata = await sharp(file.buffer).metadata();
-            width = metadata.width;
-            height = metadata.height;
-          } else if (file.path) {
-            const metadata = await sharp(file.path).metadata();
-            width = metadata.width;
-            height = metadata.height;
-          }
+          const metadata = await sharp(file.path).metadata();
+          width = metadata.width;
+          height = metadata.height;
         } catch (error) {
           console.warn('Could not get image metadata:', error);
         }
       }
 
-      // Determine file path based on storage type
-      let filePath = file.path;
-      if (file.location) {
-        // S3 storage - file.location contains the S3 URL
-        filePath = file.location;
-      } else if (file.key) {
-        // S3 storage with key - construct URL
-        const { getS3BaseUrl } = require('../config/s3');
-        filePath = `${getS3BaseUrl()}/${file.key}`;
-      }
-
       // Save to database
       const result = await db.query(`
         INSERT INTO media_files (
-          filename, original_filename, file_path, file_size, mime_type, 
-          file_type, width, height, uploaded_by, alt_text, caption, is_public
+          filename, original_filename, file_path, file_url, file_size, mime_type, 
+          file_type, width, height, uploaded_by, alt_text, caption, is_public, storage_key
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING *
       `, [
-        file.filename || file.key?.split('/').pop() || `${uuidv4()}${path.extname(file.originalname)}`,
+        file.filename,
         file.originalname,
-        filePath,
+        file.path,
         file.size,
         file.mimetype,
         fileType,
@@ -180,7 +168,8 @@ export const uploadMediaFiles = async (req: AuthRequest, res: Response, next: Ne
         req.user!.id,
         altText,
         caption,
-        isPublic === 'true'
+        isPublic === 'true',
+        uploadResult.key
       ]);
 
       uploadedFiles.push(result.rows[0]);
@@ -228,9 +217,10 @@ export const deleteMediaFile = async (req: AuthRequest, res: Response, next: Nex
   try {
     const { id } = req.params;
     const db = getDatabase();
+    const storageService = getStorageService();
 
     // Check if file exists and user has permission
-    const existingFile = await db.query('SELECT uploaded_by, file_path FROM media_files WHERE id = $1', [id]);
+    const existingFile = await db.query('SELECT uploaded_by, file_path, storage_key FROM media_files WHERE id = $1', [id]);
     if (existingFile.rows.length === 0) {
       throw createError('Media file not found', 404);
     }
@@ -239,14 +229,12 @@ export const deleteMediaFile = async (req: AuthRequest, res: Response, next: Nex
       throw createError('Not authorized to delete this file', 403);
     }
 
-    // Delete physical file
-    const filePath = existingFile.rows[0].file_path;
+    // Delete from storage
+    const storageKey = existingFile.rows[0].storage_key || existingFile.rows[0].file_path;
     try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+      await storageService.deleteFile(storageKey);
     } catch (error) {
-      console.warn('Could not delete physical file:', error);
+      console.warn('Could not delete file from storage:', error);
     }
 
     // Delete from database
@@ -279,6 +267,7 @@ export const generateThumbnails = async (req: AuthRequest, res: Response, next: 
   try {
     const { id } = req.params;
     const db = getDatabase();
+    const storageService = getStorageService();
 
     // Get media file
     const fileResult = await db.query('SELECT * FROM media_files WHERE id = $1', [id]);
@@ -304,23 +293,49 @@ export const generateThumbnails = async (req: AuthRequest, res: Response, next: 
     ];
 
     const generatedThumbnails = [];
+    const storageKey = file.storage_key || file.file_path;
+
+    // Get the original image data
+    let imageBuffer: Buffer;
+    if (storageService.getProvider() === 'local') {
+      imageBuffer = fs.readFileSync(file.file_path);
+    } else {
+      const stream = await storageService.getFileStream(storageKey);
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      imageBuffer = Buffer.concat(chunks);
+    }
 
     for (const { size, width, height } of thumbnailSizes) {
       try {
-        const thumbnailFilename = `${uuidv4()}_${size}.jpg`;
-        const thumbnailPath = path.join(path.dirname(file.file_path), thumbnailFilename);
-
-        await sharp(file.file_path)
+        // Generate thumbnail buffer
+        const thumbnailBuffer = await sharp(imageBuffer)
           .resize(width, height, { fit: 'inside', withoutEnlargement: true })
           .jpeg({ quality: 80 })
-          .toFile(thumbnailPath);
+          .toBuffer();
+
+        // Generate unique key for thumbnail
+        const thumbnailKey = `thumbnails/${uuidv4()}_${size}.jpg`;
+
+        // Upload thumbnail to storage
+        const uploadResult = await storageService.uploadBuffer(
+          thumbnailBuffer,
+          thumbnailKey,
+          'image/jpeg',
+          {
+            parentFile: file.id,
+            size: size
+          }
+        );
 
         // Save thumbnail info to database
         const thumbnailResult = await db.query(`
-          INSERT INTO media_thumbnails (media_file_id, thumbnail_path, width, height, size)
-          VALUES ($1, $2, $3, $4, $5)
+          INSERT INTO media_thumbnails (media_file_id, thumbnail_path, thumbnail_url, storage_key, width, height, size)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
           RETURNING *
-        `, [id, thumbnailPath, width, height, size]);
+        `, [id, thumbnailKey, uploadResult.url, uploadResult.key, width, height, size]);
 
         generatedThumbnails.push(thumbnailResult.rows[0]);
       } catch (error) {
@@ -339,6 +354,7 @@ export const serveMediaFile = async (req: Request, res: Response, next: NextFunc
   try {
     const { id } = req.params;
     const db = getDatabase();
+    const storageService = getStorageService();
 
     const result = await db.query('SELECT * FROM media_files WHERE id = $1', [id]);
     if (result.rows.length === 0) {
@@ -353,6 +369,21 @@ export const serveMediaFile = async (req: Request, res: Response, next: NextFunc
       // For now, we'll allow access to all files
     }
 
+    // If using cloud storage, redirect to CDN URL or signed URL
+    if (storageService.getProvider() !== 'local') {
+      const storageKey = file.storage_key || file.file_path;
+      
+      if (file.is_public && file.file_url) {
+        // Redirect to public CDN URL
+        return res.redirect(file.file_url);
+      } else {
+        // Generate signed URL for private files
+        const signedUrl = await storageService.getSignedUrl(storageKey, 3600); // 1 hour
+        return res.redirect(signedUrl);
+      }
+    }
+
+    // For local storage, serve the file directly
     const filePath = file.file_path;
     
     if (!fs.existsSync(filePath)) {
