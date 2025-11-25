@@ -64,17 +64,30 @@ export const getUsers = async (req: AuthRequest, res: Response, next: NextFuncti
   }
 };
 
-export const getUserById = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getUserById = async (req: Request | AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
     const db = getDatabase();
 
-    const result = await db.query(
-      'SELECT id, email, username, first_name, last_name, role, avatar_url, bio, is_active, created_at FROM users WHERE id = $1',
-      [id]
-    );
+    // Check if this is an authenticated request (for additional info) or public service-to-service call
+    const isAuthenticated = 'user' in req && req.user;
+
+    // For authenticated requests, return more details
+    // For service-to-service calls, return basic user info needed for auth
+    const query = isAuthenticated
+      ? 'SELECT id, email, username, first_name, last_name, role, avatar_url, bio, is_active, created_at FROM users WHERE id = $1'
+      : 'SELECT id, email, username, first_name, last_name, role, is_active FROM users WHERE id = $1';
+
+    const result = await db.query(query, [id]);
 
     if (result.rows.length === 0) {
+      throw createError('User not found', 404);
+    }
+
+    const user = result.rows[0];
+    
+    // For service-to-service calls, only return active users
+    if (!isAuthenticated && !user.is_active) {
       throw createError('User not found', 404);
     }
 

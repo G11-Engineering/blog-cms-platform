@@ -140,47 +140,11 @@ export const uploadMediaFiles = async (req: AuthRequest, res: Response, next: Ne
       let height = null;
       if (fileType === 'image') {
         try {
-          // Use buffer or path depending on storage type
-          const imageBuffer = file.buffer || fs.readFileSync(file.path);
-          const metadata = await sharp(imageBuffer).metadata();
+          const metadata = await sharp(file.path).metadata();
           width = metadata.width;
           height = metadata.height;
         } catch (error) {
           console.warn('Could not get image metadata:', error);
-        }
-      }
-
-      // Upload to storage (S3/R2 or local)
-      let uploadResult;
-      if (file.buffer) {
-        // Memory storage (S3/R2)
-        uploadResult = await storageService.uploadBuffer(
-          file.buffer,
-          storageKey,
-          file.mimetype,
-          {
-            originalName: file.originalname,
-            uploadedBy: req.user!.id
-          }
-        );
-      } else {
-        // Disk storage (local)
-        uploadResult = await storageService.uploadFile(
-          file.path,
-          storageKey,
-          file.mimetype,
-          {
-            originalName: file.originalname,
-            uploadedBy: req.user!.id
-          }
-        );
-        // Clean up temp file if using local storage with temp path
-        if (file.path && file.path.includes('temp')) {
-          try {
-            fs.unlinkSync(file.path);
-          } catch (err) {
-            console.warn('Could not delete temp file:', err);
-          }
         }
       }
 
@@ -193,10 +157,9 @@ export const uploadMediaFiles = async (req: AuthRequest, res: Response, next: Ne
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING *
       `, [
-        storageKey,
+        file.filename,
         file.originalname,
-        file.path || storageKey,
-        uploadResult.url,
+        file.path,
         file.size,
         file.mimetype,
         fileType,

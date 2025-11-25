@@ -27,7 +27,8 @@ export const authenticateToken = async (
 
     // Verify token locally using JWT
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production') as any;
+      const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+      const decoded = jwt.verify(token, jwtSecret) as any;
       console.log('Decoded JWT:', decoded);
       req.user = {
         id: decoded.userId,

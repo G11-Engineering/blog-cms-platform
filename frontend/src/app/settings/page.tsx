@@ -1,11 +1,94 @@
 'use client';
 
-import { Container, Stack, Title, Text, Card, Switch, Select, NumberInput, Button, Group, TextInput, Grid, Paper, Badge, Alert } from '@mantine/core';
-import { IconSettings, IconPalette, IconLayout, IconBell, IconShield, IconDatabase, IconDeviceFloppy, IconRefresh, IconMoon, IconSun, IconDeviceDesktop } from '@tabler/icons-react';
+import { Container, Stack, Title, Text, Card, Switch, Select, NumberInput, Button, Group, TextInput, Grid, Paper, Badge, Alert, Textarea, Loader } from '@mantine/core';
+import { IconSettings, IconPalette, IconLayout, IconBell, IconShield, IconDatabase, IconDeviceFloppy, IconRefresh, IconMoon, IconSun, IconDeviceDesktop, IconEdit } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { notifications } from '@mantine/notifications';
+import { useBlogSettings, useUpdateBlogSettings } from '@/hooks/useBlogSettings';
+import { useForm } from '@mantine/form';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
+  const { isAuthenticated } = useAuth();
+  const { data: blogSettingsData, isLoading: isLoadingBlogSettings } = useBlogSettings();
+  const updateBlogSettings = useUpdateBlogSettings();
+  
+  const blogSettingsForm = useForm({
+    initialValues: {
+      blogTitle: '',
+      blogDescription: '',
+      blogLogoUrl: '',
+      blogFaviconUrl: '',
+      contactEmail: '',
+      socialFacebook: '',
+      socialTwitter: '',
+      socialLinkedin: '',
+      socialGithub: '',
+      seoMetaTitle: '',
+      seoMetaDescription: '',
+      seoKeywords: '',
+      googleAnalyticsId: '',
+    },
+    validate: {
+      blogTitle: (value) => (!value || value.trim().length === 0 ? 'Blog title is required' : null),
+      contactEmail: (value) => (value && !/^\S+@\S+$/.test(value) ? 'Invalid email format' : null),
+    },
+  });
+
+  // Update form when blog settings are loaded
+  useEffect(() => {
+    if (blogSettingsData?.settings) {
+      const settings = blogSettingsData.settings;
+      blogSettingsForm.setValues({
+        blogTitle: settings.blog_title || '',
+        blogDescription: settings.blog_description || '',
+        blogLogoUrl: settings.blog_logo_url || '',
+        blogFaviconUrl: settings.blog_favicon_url || '',
+        contactEmail: settings.contact_email || '',
+        socialFacebook: settings.social_facebook || '',
+        socialTwitter: settings.social_twitter || '',
+        socialLinkedin: settings.social_linkedin || '',
+        socialGithub: settings.social_github || '',
+        seoMetaTitle: settings.seo_meta_title || '',
+        seoMetaDescription: settings.seo_meta_description || '',
+        seoKeywords: settings.seo_keywords || '',
+        googleAnalyticsId: settings.google_analytics_id || '',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blogSettingsData]);
+
+  const handleBlogSettingsSubmit = async (values: typeof blogSettingsForm.values) => {
+    if (!isAuthenticated) {
+      notifications.show({
+        title: 'Authentication Required',
+        message: 'Please log in to update blog settings',
+        color: 'red',
+      });
+      return;
+    }
+
+    try {
+      await updateBlogSettings.mutateAsync({
+        blogTitle: values.blogTitle,
+        blogDescription: values.blogDescription,
+        blogLogoUrl: values.blogLogoUrl,
+        blogFaviconUrl: values.blogFaviconUrl,
+        contactEmail: values.contactEmail,
+        socialFacebook: values.socialFacebook,
+        socialTwitter: values.socialTwitter,
+        socialLinkedin: values.socialLinkedin,
+        socialGithub: values.socialGithub,
+        seoMetaTitle: values.seoMetaTitle,
+        seoMetaDescription: values.seoMetaDescription,
+        seoKeywords: values.seoKeywords,
+        googleAnalyticsId: values.googleAnalyticsId,
+      });
+    } catch (error) {
+      // Error is handled by the mutation
+    }
+  };
+
   const [settings, setSettings] = useState({
     // Theme Settings
     theme: 'light',
@@ -138,6 +221,173 @@ export default function SettingsPage() {
 
         {/* Settings Sections */}
         <Grid>
+          {/* Blog Settings */}
+          <Grid.Col span={12}>
+            <Card withBorder shadow="sm" p="lg" radius="lg">
+              <Stack gap="md">
+                <Group>
+                  <IconEdit size={24} color="#ff8c00" />
+                  <Title order={3} c="wso2-black.9">Blog Settings</Title>
+                </Group>
+                
+                {isLoadingBlogSettings ? (
+                  <Group justify="center" p="xl">
+                    <Loader size="md" />
+                  </Group>
+                ) : (
+                  <form onSubmit={blogSettingsForm.onSubmit(handleBlogSettingsSubmit)}>
+                    <Stack gap="md">
+                      <TextInput
+                        label="Blog Title"
+                        description="The title of your blog (displayed in the header and meta tags)"
+                        placeholder="My Awesome Blog"
+                        required
+                        maxLength={200}
+                        {...blogSettingsForm.getInputProps('blogTitle')}
+                      />
+                      
+                      <Textarea
+                        label="Blog Description"
+                        description="A brief description of your blog (used in meta tags and about sections)"
+                        placeholder="Welcome to my blog where I share my thoughts..."
+                        rows={4}
+                        maxLength={1000}
+                        {...blogSettingsForm.getInputProps('blogDescription')}
+                      />
+                      
+                      <TextInput
+                        label="Blog Logo URL"
+                        description="URL to your blog logo (displayed in header)"
+                        placeholder="https://example.com/logo.png"
+                        {...blogSettingsForm.getInputProps('blogLogoUrl')}
+                      />
+                      
+                      <TextInput
+                        label="Favicon URL"
+                        description="URL to your blog favicon (displayed in browser tab)"
+                        placeholder="https://example.com/favicon.ico"
+                        {...blogSettingsForm.getInputProps('blogFaviconUrl')}
+                      />
+                      
+                      <TextInput
+                        label="Contact Email"
+                        description="Email address for contact and inquiries"
+                        placeholder="contact@example.com"
+                        {...blogSettingsForm.getInputProps('contactEmail')}
+                      />
+                      
+                      <Group justify="flex-end">
+                        <Button
+                          type="submit"
+                          leftSection={<IconDeviceFloppy size={16} />}
+                          loading={updateBlogSettings.isLoading}
+                          disabled={!isAuthenticated}
+                          color="wso2-orange"
+                        >
+                          Save Blog Settings
+                        </Button>
+                      </Group>
+                      
+                      {!isAuthenticated && (
+                        <Alert color="yellow" title="Authentication Required">
+                          You need to be logged in to update blog settings.
+                        </Alert>
+                      )}
+                    </Stack>
+                  </form>
+                )}
+              </Stack>
+            </Card>
+          </Grid.Col>
+
+          {/* Social Media Settings */}
+          <Grid.Col span={12}>
+            <Card withBorder shadow="sm" p="lg" radius="lg">
+              <Stack gap="md">
+                <Group>
+                  <IconSettings size={24} color="#ff8c00" />
+                  <Title order={3} c="wso2-black.9">Social Media</Title>
+                </Group>
+                
+                <Grid>
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <TextInput
+                      label="Facebook URL"
+                      placeholder="https://facebook.com/yourpage"
+                      {...blogSettingsForm.getInputProps('socialFacebook')}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <TextInput
+                      label="Twitter URL"
+                      placeholder="https://twitter.com/yourhandle"
+                      {...blogSettingsForm.getInputProps('socialTwitter')}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <TextInput
+                      label="LinkedIn URL"
+                      placeholder="https://linkedin.com/company/yourcompany"
+                      {...blogSettingsForm.getInputProps('socialLinkedin')}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <TextInput
+                      label="GitHub URL"
+                      placeholder="https://github.com/yourusername"
+                      {...blogSettingsForm.getInputProps('socialGithub')}
+                    />
+                  </Grid.Col>
+                </Grid>
+              </Stack>
+            </Card>
+          </Grid.Col>
+
+          {/* SEO Settings */}
+          <Grid.Col span={12}>
+            <Card withBorder shadow="sm" p="lg" radius="lg">
+              <Stack gap="md">
+                <Group>
+                  <IconSettings size={24} color="#ff8c00" />
+                  <Title order={3} c="wso2-black.9">SEO Settings</Title>
+                </Group>
+                
+                <TextInput
+                  label="SEO Meta Title"
+                  description="Default meta title for search engines (if not specified, blog title will be used)"
+                  placeholder="My Awesome Blog - Best Content Platform"
+                  maxLength={200}
+                  {...blogSettingsForm.getInputProps('seoMetaTitle')}
+                />
+                
+                <Textarea
+                  label="SEO Meta Description"
+                  description="Default meta description for search engines"
+                  placeholder="A brief description of your blog for search engines..."
+                  rows={3}
+                  maxLength={500}
+                  {...blogSettingsForm.getInputProps('seoMetaDescription')}
+                />
+                
+                <TextInput
+                  label="SEO Keywords"
+                  description="Comma-separated keywords for SEO"
+                  placeholder="blog, content, articles, news"
+                  maxLength={500}
+                  {...blogSettingsForm.getInputProps('seoKeywords')}
+                />
+                
+                <TextInput
+                  label="Google Analytics ID"
+                  description="Your Google Analytics tracking ID (e.g., G-XXXXXXXXXX)"
+                  placeholder="G-XXXXXXXXXX"
+                  maxLength={100}
+                  {...blogSettingsForm.getInputProps('googleAnalyticsId')}
+                />
+              </Stack>
+            </Card>
+          </Grid.Col>
+
           {/* Theme Settings */}
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Card withBorder shadow="sm" p="lg" radius="lg">

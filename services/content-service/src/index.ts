@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { postRoutes } from './routes/posts';
+import { blogSettingsRoutes } from './routes/blogSettings';
 import { errorHandler } from './middleware/errorHandler';
 import { connectDatabase } from './config/database';
 import { initializeDatabase } from './migrations/initialize';
@@ -40,6 +41,7 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/posts', postRoutes);
+app.use('/api/blog-settings', blogSettingsRoutes);
 
 // Error handling
 app.use(errorHandler);

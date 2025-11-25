@@ -10,8 +10,9 @@ import Underline from '@tiptap/extension-underline';
 import TextStyle from '@tiptap/extension-text-style';
 import { Button, Group, Stack, TextInput, FileInput, Modal, Text, Paper, ActionIcon, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUploadMedia } from '@/hooks/useMedia';
+import { notifications } from '@mantine/notifications';
 import { 
   IconBold, 
   IconItalic, 
@@ -82,6 +83,22 @@ export function TipTapEditor({
     },
   });
 
+  // Update editor content when content prop changes (but not on user edits)
+  useEffect(() => {
+    if (editor && content !== undefined && content !== null) {
+      const currentContent = editor.getHTML();
+      // Only update if content is actually different to avoid unnecessary updates
+      // Also check if the editor is empty or just has a placeholder paragraph
+      const isEmpty = currentContent === '<p></p>' || currentContent.trim() === '';
+      if (currentContent !== content && (isEmpty || content.length > currentContent.length)) {
+        // Use setTimeout to avoid race conditions with editor initialization
+        setTimeout(() => {
+          editor.commands.setContent(content, false); // false = don't emit update event
+        }, 0);
+      }
+    }
+  }, [content, editor]);
+
   const handleImageUpload = async (file: File) => {
     try {
       const result = await uploadMedia.mutateAsync({
@@ -90,11 +107,19 @@ export function TipTapEditor({
       });
       
       if (result.files && result.files.length > 0) {
-        const imageUrl = `${process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL}/uploads/${result.files[0].filename}`;
+        // Use file_path if available (for S3), otherwise construct URL
+        const uploadedFile = result.files[0];
+        const imageUrl = uploadedFile.file_path || 
+                        `${process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || 'http://localhost:3003'}/uploads/${uploadedFile.filename}`;
         editor?.chain().focus().setImage({ src: imageUrl }).run();
       }
     } catch (error) {
       console.error('Failed to upload image:', error);
+      notifications.show({
+        title: 'Upload Failed',
+        message: 'Failed to upload image. Please try again.',
+        color: 'red',
+      });
     }
   };
 

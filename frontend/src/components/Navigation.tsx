@@ -1,38 +1,12 @@
 'use client';
 
 import { Container, Group, Button, Text, Box } from '@mantine/core';
-import { useAuthContext } from '@asgardeo/auth-react';
+import { IconSettings } from '@tabler/icons-react';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 
 export function Navigation() {
-  const { signIn, signOut, isAuthenticated, getBasicUserInfo } = useAuthContext();
-  const [authenticated, setAuthenticated] = useState(false);
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const authStatus = await isAuthenticated();
-        setAuthenticated(authStatus);
-        
-        if (authStatus) {
-          const userInfo = await getBasicUserInfo();
-          setUser(userInfo);
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-      }
-    };
-
-    checkAuth();
-  }, [isAuthenticated, getBasicUserInfo]);
-
-  const handleLogout = () => {
-    signOut();
-    setAuthenticated(false);
-    setUser(null);
-  };
+  const { isAuthenticated, user, logout } = useAuth();
 
   return (
     <Box
@@ -99,8 +73,31 @@ export function Navigation() {
             >
               Tags
             </Button>
+            {isAuthenticated && (
+              <Button 
+                component={Link} 
+                href="/settings" 
+                variant="subtle"
+                c="white"
+                leftSection={<IconSettings size={18} />}
+                style={{ color: 'white' }}
+              >
+                Settings
+              </Button>
+            )}
+            {isAuthenticated && user?.role === 'admin' && (
+              <Button 
+                component={Link} 
+                href="/users" 
+                variant="subtle"
+                c="white"
+                style={{ color: 'white' }}
+              >
+                Users
+              </Button>
+            )}
             
-            {authenticated ? (
+            {isAuthenticated ? (
               <Group>
                 <Button 
                   component={Link} 
@@ -119,7 +116,7 @@ export function Navigation() {
                 <Button 
                   variant="outline"
                   c="white"
-                  onClick={handleLogout}
+                  onClick={logout}
                   style={{
                     borderColor: 'rgba(255, 255, 255, 0.3)',
                     color: 'white',
@@ -132,7 +129,8 @@ export function Navigation() {
             ) : (
               <Group>
                 <Button 
-                  onClick={() => signIn()}
+                  component={Link}
+                  href="/auth/login"
                   variant="outline"
                   c="white"
                   style={{

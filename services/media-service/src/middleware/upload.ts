@@ -1,30 +1,42 @@
 import multer from 'multer';
+import multerS3 from 'multer-s3';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { createError } from './errorHandler';
+import { getS3Client, getS3Bucket, isS3Configured } from '../config/s3';
 
-// Configure storage - use memory storage for cloud uploads, disk for local
-const getStorage = () => {
-  const storageProvider = process.env.STORAGE_PROVIDER || 'local';
-  
-  if (storageProvider === 'local') {
-    return multer.diskStorage({
-      destination: (req, file, cb) => {
-        const uploadPath = process.env.UPLOAD_PATH || path.join(__dirname, '../../uploads');
-        cb(null, uploadPath);
-      },
-      filename: (req, file, cb) => {
-        const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-        cb(null, uniqueName);
-      }
-    });
-  } else {
-    // Use memory storage for S3/R2 uploads
-    return multer.memoryStorage();
+// Determine storage type based on configuration
+const useS3 = isS3Configured();
+const s3Client = useS3 ? getS3Client() : null;
+const s3Bucket = getS3Bucket();
+
+// S3 Storage Configuration
+const s3Storage = s3Client ? multerS3({
+  s3: s3Client,
+  bucket: s3Bucket,
+  acl: 'public-read', // Make uploaded files publicly accessible
+  key: (req, file, cb) => {
+    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+    const folder = process.env.AWS_S3_FOLDER || 'uploads'; // Optional folder prefix
+    cb(null, `${folder}/${uniqueName}`);
+  },
+  contentType: multerS3.AUTO_CONTENT_TYPE,
+}) : null;
+
+// Local Disk Storage Configuration (fallback)
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = process.env.UPLOAD_PATH || path.join(__dirname, '../../uploads');
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
   }
-};
+});
 
-const storage = getStorage();
+// Use S3 if configured, otherwise fall back to disk storage
+const storage = useS3 && s3Storage ? s3Storage : diskStorage;
 
 // File filter
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {

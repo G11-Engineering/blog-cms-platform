@@ -42,6 +42,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Only access localStorage in browser environment
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
       // Verify token and get user data
@@ -50,7 +56,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userData);
         })
         .catch(() => {
-          localStorage.removeItem('token');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+          }
         })
         .finally(() => {
           setLoading(false);
@@ -63,7 +71,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await authApi.login(email, password);
-      localStorage.setItem('token', response.token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', response.token);
+      }
       setUser(response.user);
       notifications.show({
         title: 'Success',
@@ -83,7 +93,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (data: RegisterData) => {
     try {
       const response = await authApi.register(data);
-      localStorage.setItem('token', response.token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', response.token);
+      }
       setUser(response.user);
       notifications.show({
         title: 'Success',
@@ -101,7 +113,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+    }
     setUser(null);
     router.push('/');
     notifications.show({

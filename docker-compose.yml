@@ -103,8 +103,11 @@ services:
       NODE_ENV: development
       PORT: 3002
       DATABASE_URL: postgresql://content_service:content_password@postgres-content:5432/content_service
+      CATEGORY_SERVICE_URL: http://category-service:3004
+      JWT_SECRET: your-super-secret-jwt-key
     depends_on:
       - postgres-content
+      - category-service
     networks:
       - cms-network
     volumes:
@@ -124,8 +127,13 @@ services:
       NODE_ENV: development
       PORT: 3003
       DATABASE_URL: postgresql://media_service:media_password@postgres-media:5432/media_service
-      # Storage Configuration
-      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      # S3 Configuration (optional - if not set, will use local storage)
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-blog-cms-media}
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT:-}
+      AWS_S3_FOLDER: ${AWS_S3_FOLDER:-uploads}
       UPLOAD_PATH: /app/uploads
       MEDIA_SERVICE_URL: http://localhost:3003
       # S3 Configuration (uncomment and set if using S3)

@@ -6,9 +6,11 @@ import Link from 'next/link';
 import { usePosts } from '@/hooks/usePosts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
+import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 
 export default function PostsPage() {
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
@@ -54,9 +56,9 @@ export default function PostsPage() {
 
   const { data: posts, isLoading: postsLoading } = usePosts({ 
     status: 'published',
-    search: searchTerm,
-    category: selectedCategory,
-    tag: selectedTag,
+    search: searchTerm || undefined,
+    category: selectedCategory || undefined,
+    tag: selectedTag || undefined,
     sortBy,
     limit: itemsPerPage
   });
@@ -64,12 +66,12 @@ export default function PostsPage() {
   const { data: categories } = useCategories({ limit: 20 });
   const { data: tags } = useTags({ limit: 20 });
 
-  // Use sample data if API data is not available
-  const displayPosts = posts?.posts || samplePosts;
+  // Use API data if available, otherwise show sample data (only if not loading and no API data)
+  const displayPosts = postsLoading ? [] : (posts?.posts ? posts.posts : (posts === undefined ? samplePosts : []));
   const displayCategories = categories?.categories || sampleCategories;
   const displayTags = tags?.tags || sampleTags;
 
-  const totalPages = Math.ceil((posts?.total || samplePosts.length) / itemsPerPage);
+  const totalPages = Math.ceil((posts?.pagination?.total || (displayPosts.length > 0 ? displayPosts.length : samplePosts.length)) / itemsPerPage);
 
   return (
     <Container size="xl" py="xl">
@@ -158,9 +160,26 @@ export default function PostsPage() {
               {searchTerm || selectedCategory || selectedTag ? 'Filtered Posts' : 'All Posts'}
             </Title>
             <Text size="sm" c="dimmed">
-              {displayPosts.length} posts found
+              {postsLoading ? 'Loading...' : `${displayPosts.length} ${displayPosts.length === 1 ? 'post' : 'posts'} found`}
             </Text>
           </Group>
+          
+          {!postsLoading && displayPosts.length === 0 && posts?.posts?.length === 0 && (
+            <Card withBorder p="xl" ta="center">
+              <Stack gap="md" align="center">
+                <Text size="xl" c="dimmed">No posts found</Text>
+                <Text size="sm" c="dimmed">
+                  {isAuthenticated ? (
+                    <>
+                      You haven't created any posts yet. <Link href="/posts/create" style={{ color: '#ff8c00' }}>Create your first post</Link>
+                    </>
+                  ) : (
+                    'Be the first to create a post!'
+                  )}
+                </Text>
+              </Stack>
+            </Card>
+          )}
           
           {postsLoading ? (
             <Grid>
@@ -230,14 +249,14 @@ export default function PostsPage() {
 
                           {/* Categories and Tags */}
                           <Group gap="xs" mb="sm">
-                            {post.categories?.slice(0, 2).map((category: any) => (
-                              <Badge key={category.id} variant="light" color="wso2-orange" size="xs">
-                                {category.name}
+                            {post.categories?.slice(0, 2).map((category: any, idx: number) => (
+                              <Badge key={category?.id || `cat-${idx}`} variant="light" color="wso2-orange" size="xs">
+                                {category?.name || category}
                               </Badge>
                             ))}
-                            {post.tags?.slice(0, 2).map((tag: any) => (
-                              <Badge key={tag.id} variant="light" color="wso2-blue" size="xs">
-                                #{tag.name}
+                            {post.tags?.slice(0, 2).map((tag: any, idx: number) => (
+                              <Badge key={tag?.id || `tag-${idx}`} variant="light" color="wso2-blue" size="xs">
+                                #{tag?.name || tag}
                               </Badge>
                             ))}
                           </Group>

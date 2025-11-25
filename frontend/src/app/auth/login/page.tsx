@@ -6,7 +6,7 @@ import { useForm } from '@mantine/form';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { IconInfoCircle, IconEye, IconEyeOff, IconBookmark, IconShield, IconRocket } from '@tabler/icons-react';
+import { IconInfoCircle, IconEye, IconEyeOff, IconBookmark, IconShield, IconRocket, IconMail, IconLock, IconUser, IconLogin, IconSparkles } from '@tabler/icons-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -61,24 +61,39 @@ export default function LoginPage() {
           {/* Branding Header */}
           <Center>
             <Stack align="center" gap="md">
-              <ThemeIcon
-                size={80}
-                radius="xl"
-                color="blue"
-                variant="filled"
-                style={{
-                  background: 'white',
-                  color: '#3B82F6',
-                  boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
-                }}
-              >
-                <IconBookmark size={40} />
-              </ThemeIcon>
+              <Group gap="xs" justify="center">
+                <ThemeIcon
+                  size={80}
+                  radius="xl"
+                  color="wso2-orange"
+                  variant="filled"
+                  style={{
+                    background: 'white',
+                    color: '#ff8c00',
+                    boxShadow: '0 8px 32px rgba(255, 140, 0, 0.4)',
+                    border: '3px solid rgba(255, 255, 255, 0.3)',
+                  }}
+                >
+                  <IconBookmark size={40} />
+                </ThemeIcon>
+                <ThemeIcon
+                  size={60}
+                  radius="lg"
+                  variant="light"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    border: '2px solid rgba(255, 255, 255, 0.3)',
+                  }}
+                >
+                  <IconSparkles size={30} />
+                </ThemeIcon>
+              </Group>
               <div style={{ textAlign: 'center' }}>
-                <Title order={1} c="white" size="2.5rem" fw={700}>
+                <Title order={1} c="white" size="2.5rem" fw={700} style={{ textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)' }}>
                   WSO2 Blog Platform
                 </Title>
-                <Text c="white" size="lg" opacity={0.9}>
+                <Text c="white" size="lg" opacity={0.95} fw={500} mt="xs">
                   Welcome Back to WSO2 Community
                 </Text>
               </div>
@@ -98,9 +113,12 @@ export default function LoginPage() {
           >
             <Stack gap="lg">
               <div style={{ textAlign: 'center' }}>
-                <Title order={2} c="dark" size="1.8rem" fw={600}>
-                  Sign In
-                </Title>
+                <Group justify="center" gap="xs" mb="sm">
+                  <IconUser size={24} color="#ff8c00" />
+                  <Title order={2} c="dark" size="1.8rem" fw={600}>
+                    Sign In
+                  </Title>
+                </Group>
                 <Text c="dimmed" size="md" mt="xs">
                   Access your account to start writing
                 </Text>
@@ -114,9 +132,14 @@ export default function LoginPage() {
                     required
                     size="md"
                     radius="md"
+                    leftSection={<IconMail size={18} />}
                     {...form.getInputProps('email')}
                     styles={{
                       label: { color: '#1F2937', fontWeight: 600 },
+                      input: { 
+                        border: '2px solid #E5E7EB',
+                        transition: 'all 0.2s',
+                      },
                     }}
                   />
 
@@ -126,9 +149,14 @@ export default function LoginPage() {
                     required
                     size="md"
                     radius="md"
+                    leftSection={<IconLock size={18} />}
                     {...form.getInputProps('password')}
                     styles={{
                       label: { color: '#1F2937', fontWeight: 600 },
+                      input: { 
+                        border: '2px solid #E5E7EB',
+                        transition: 'all 0.2s',
+                      },
                     }}
                   />
 
@@ -139,12 +167,26 @@ export default function LoginPage() {
                     radius="md"
                     loading={loading}
                     disabled={!form.isValid()}
+                    leftSection={!loading && <IconLogin size={20} />}
                     style={{
-                      background: 'linear-gradient(135deg, #ff8c00 0%, #e67e00 100%)', // Softer orange
+                      background: 'linear-gradient(135deg, #ff8c00 0%, #e67e00 100%)',
                       border: 'none',
                       fontWeight: 600,
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
+                      boxShadow: '0 4px 15px rgba(255, 140, 0, 0.3)',
+                      transition: 'all 0.3s',
+                    }}
+                    styles={{
+                      root: {
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 6px 20px rgba(255, 140, 0, 0.4)',
+                        },
+                        '&:active': {
+                          transform: 'translateY(0)',
+                        },
+                      },
                     }}
                   >
                     {loading ? 'Signing In...' : 'Sign In'}
