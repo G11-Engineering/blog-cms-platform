@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDatabase } from '../config/database';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
+import { validateAsgardeoToken, extractUserInfo } from '../utils/asgardeoValidator';
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -24,7 +25,8 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
+    // Create user with 'reader' role (default for all new registrations)
+    // Admins can upgrade to author/editor/admin via admin panel
     const result = await db.query(`
       INSERT INTO users (email, username, password_hash, first_name, last_name, role)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -177,6 +179,133 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
     // For this stub, we'll just return a success message
     res.json({ message: 'Password reset successful' });
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Asgardeo Login - Token Exchange Endpoint
+ * Receives Asgardeo ID token, validates it, creates/updates user, and issues local JWT
+ */
+export const asgardeoLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      throw createError('Asgardeo ID token is required', 400);
+    }
+
+    // 1. Validate Asgardeo token
+    const asgardeoPayload = await validateAsgardeoToken(idToken);
+
+    // 2. Extract user info and determine role from Asgardeo groups
+    const userInfo = extractUserInfo(asgardeoPayload);
+
+    const db = getDatabase();
+
+    // 3. Check if user exists in local database
+    let userResult = await db.query(
+      'SELECT * FROM users WHERE email = $1',
+      [userInfo.email]
+    );
+
+    let user;
+
+    if (userResult.rows.length === 0) {
+      // 4. NEW USER - Just-In-Time (JIT) Provisioning
+      const username = userInfo.email.split('@')[0];
+
+      console.log(`🆕 New user registration via Asgardeo: ${userInfo.email}`);
+
+      userResult = await db.query(`
+        INSERT INTO users (
+          email,
+          username,
+          password_hash,
+          first_name,
+          last_name,
+          role,
+          is_active,
+          email_verified
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, email, username, first_name, last_name, role, is_active, created_at
+      `, [
+        userInfo.email,
+        username,
+        'ASGARDEO_SSO', // Password not needed for SSO users
+        userInfo.firstName,
+        userInfo.lastName,
+        userInfo.role, // Default 'reader' role - admins can upgrade via admin panel
+        true, // is_active
+        true  // email_verified (Asgardeo handles verification)
+      ]);
+
+      user = userResult.rows[0];
+      console.log(`✅ User created with ID: ${user.id}, role: ${user.role}`);
+    } else {
+      // 5. EXISTING USER - Update profile info only (NOT role)
+      user = userResult.rows[0];
+
+      console.log(`✅ Existing user login: ${user.email}, role: ${user.role}`);
+
+      // Only update name and email verification - NEVER update role from Asgardeo
+      await db.query(`
+        UPDATE users
+        SET
+          first_name = $1,
+          last_name = $2,
+          email_verified = true,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3
+      `, [userInfo.firstName, userInfo.lastName, user.id]);
+
+      user.first_name = userInfo.firstName;
+      user.last_name = userInfo.lastName;
+    }
+
+    // 6. Check if user is active
+    if (!user.is_active) {
+      throw createError('User account is inactive. Please contact an administrator.', 403);
+    }
+
+    // 7. Generate OUR JWT token (not Asgardeo's)
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role
+      },
+      process.env.JWT_SECRET as string,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
+    );
+
+    // 8. Create session
+    const sessionId = uuidv4();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    await db.query(
+      'INSERT INTO user_sessions (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
+      [user.id, jwt.sign({ sessionId }, process.env.JWT_SECRET as string), expiresAt]
+    );
+
+    // 9. Return success response with OUR token
+    res.json({
+      message: 'Login successful via Asgardeo',
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        isActive: user.is_active
+      },
+      token,
+      asgardeoGroups: userInfo.groups // Include for debugging
+    });
+  } catch (error) {
+    console.error('Asgardeo login error:', error);
     next(error);
   }
 };

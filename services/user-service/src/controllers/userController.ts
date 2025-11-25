@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { getDatabase } from '../config/database';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
+import { syncUserStatusWithAsgardeo, isAsgardeoManagementConfigured } from '../utils/asgardeoManagement';
 
 export const getUsers = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -103,18 +104,33 @@ export const updateUser = async (req: AuthRequest, res: Response, next: NextFunc
     const { firstName, lastName, role, isActive } = req.body;
     const db = getDatabase();
 
-    // Check if user exists
-    const existingUser = await db.query('SELECT id FROM users WHERE id = $1', [id]);
+    // Check if user exists and get current status
+    const existingUser = await db.query('SELECT id, email, is_active FROM users WHERE id = $1', [id]);
     if (existingUser.rows.length === 0) {
       throw createError('User not found', 404);
     }
 
+    const user = existingUser.rows[0];
+    const statusChanged = user.is_active !== isActive;
+
+    // Update local database
     const result = await db.query(`
-      UPDATE users 
+      UPDATE users
       SET first_name = $1, last_name = $2, role = $3, is_active = $4, updated_at = CURRENT_TIMESTAMP
       WHERE id = $5
       RETURNING id, email, username, first_name, last_name, role, is_active, updated_at
     `, [firstName, lastName, role, isActive, id]);
+
+    // Sync status with Asgardeo if status changed and API is configured
+    if (statusChanged && isAsgardeoManagementConfigured()) {
+      console.log(`📊 User status changed for ${user.email}: ${user.is_active} → ${isActive}`);
+
+      // Run async sync (don't block response)
+      syncUserStatusWithAsgardeo(user.email, isActive).catch((error) => {
+        console.error(`⚠️ Failed to sync status with Asgardeo for ${user.email}:`, error);
+        // Log the error but don't fail the request - local update already succeeded
+      });
+    }
 
     res.json({ user: result.rows[0] });
   } catch (error) {

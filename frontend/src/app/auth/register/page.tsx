@@ -1,67 +1,50 @@
 'use client';
 
-import { useState } from 'react';
-import { Container, Stack, Title, Text, Card, TextInput, PasswordInput, Button, Group, Anchor, Divider, Box, Center, Paper, ThemeIcon } from '@mantine/core';
-import { useForm } from '@mantine/form';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { Container, Stack, Title, Text, Card, Button, Box, Center, Paper, ThemeIcon, Alert, Timeline, List } from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { IconBookmark, IconUserPlus } from '@tabler/icons-react';
+import { IconBookmark, IconInfoCircle, IconUserPlus, IconMail, IconLogin, IconPencil } from '@tabler/icons-react';
+import { redirectToAsgardeoSelfRegister } from '@/utils/asgardeoHelpers';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(10);
+  const [autoRedirect, setAutoRedirect] = useState(true);
 
-  const form = useForm({
-    initialValues: {
-      email: '',
-      username: '',
-      password: '',
-      confirmPassword: '',
-      firstName: '',
-      lastName: '',
-    },
-    validate: {
-      email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
-      username: (value) => (value.length < 3 ? 'Username must be at least 3 characters' : null),
-      password: (value) => (value.length < 6 ? 'Password must be at least 6 characters' : null),
-      confirmPassword: (value, values) => (value !== values.password ? 'Passwords do not match' : null),
-      firstName: (value) => (!value ? 'First name is required' : null),
-      lastName: (value) => (!value ? 'Last name is required' : null),
-    },
-  });
+  useEffect(() => {
+    if (!autoRedirect) return;
 
-  const handleSubmit = async (values: typeof form.values) => {
-    setLoading(true);
-    try {
-      await register({
-        email: values.email,
-        username: values.username,
-        password: values.password,
-        firstName: values.firstName,
-        lastName: values.lastName,
-      });
-      router.push('/');
-    } catch (error) {
-      // Error is handled by the auth context
-    } finally {
-      setLoading(false);
+    // Auto-redirect countdown
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      // Redirect when countdown reaches 0
+      redirectToAsgardeoSelfRegister();
     }
+  }, [countdown, autoRedirect]);
+
+  const handleManualRedirect = () => {
+    redirectToAsgardeoSelfRegister();
+  };
+
+  const handleCancelAutoRedirect = () => {
+    setAutoRedirect(false);
   };
 
   return (
     <Box
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #ff8c00 0%, #e67e00 50%, #cc7000 100%)', // Softer WSO2 Orange gradient
+        background: 'linear-gradient(135deg, #ff8c00 0%, #e67e00 50%, #cc7000 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '2rem',
       }}
     >
-      <Container size={480} style={{ width: '100%' }}>
+      <Container size={600} style={{ width: '100%' }}>
         <Stack gap="xl">
           {/* Branding Header */}
           <Center>
@@ -69,7 +52,6 @@ export default function RegisterPage() {
               <ThemeIcon
                 size={80}
                 radius="xl"
-                color="blue"
                 variant="filled"
                 style={{
                   background: 'white',
@@ -84,13 +66,13 @@ export default function RegisterPage() {
                   Join WSO2 Blog
                 </Title>
                 <Text c="white" size="lg" opacity={0.9}>
-                  Start sharing your WSO2 stories
+                  Create your account via Asgardeo SSO
                 </Text>
               </div>
             </Stack>
           </Center>
 
-          {/* Registration Form */}
+          {/* Registration Information */}
           <Paper
             shadow="xl"
             radius="xl"
@@ -104,125 +86,125 @@ export default function RegisterPage() {
             <Stack gap="lg">
               <div style={{ textAlign: 'center' }}>
                 <Title order={2} c="dark" size="1.8rem" fw={600}>
-                  Create Account
+                  Create Your Account
                 </Title>
                 <Text c="dimmed" size="md" mt="xs">
-                  Join the WSO2 community of writers and readers
+                  Secure registration powered by WSO2 Asgardeo
                 </Text>
               </div>
 
-              <form onSubmit={form.onSubmit(handleSubmit)}>
-                <Stack gap="md">
-                  <Group grow>
-                    <TextInput
-                      label="First Name"
-                      placeholder="John"
-                      required
-                      size="md"
-                      radius="md"
-                      {...form.getInputProps('firstName')}
-                      styles={{
-                        label: { color: '#1F2937', fontWeight: 600 },
-                      }}
-                    />
-                    <TextInput
-                      label="Last Name"
-                      placeholder="Doe"
-                      required
-                      size="md"
-                      radius="md"
-                      {...form.getInputProps('lastName')}
-                      styles={{
-                        label: { color: '#1F2937', fontWeight: 600 },
-                      }}
-                    />
-                  </Group>
-
-                  <TextInput
-                    label="Email Address"
-                    placeholder="your@email.com"
-                    required
-                    size="md"
-                    radius="md"
-                    {...form.getInputProps('email')}
-                    styles={{
-                      label: { color: '#1F2937', fontWeight: 600 },
-                    }}
-                  />
-
-                  <TextInput
-                    label="Username"
-                    placeholder="johndoe"
-                    required
-                    size="md"
-                    radius="md"
-                    {...form.getInputProps('username')}
-                    styles={{
-                      label: { color: '#1F2937', fontWeight: 600 },
-                    }}
-                  />
-
-                  <PasswordInput
-                    label="Password"
-                    placeholder="Create a strong password"
-                    required
-                    size="md"
-                    radius="md"
-                    {...form.getInputProps('password')}
-                    styles={{
-                      label: { color: '#1F2937', fontWeight: 600 },
-                    }}
-                  />
-
-                  <PasswordInput
-                    label="Confirm Password"
-                    placeholder="Confirm your password"
-                    required
-                    size="md"
-                    radius="md"
-                    {...form.getInputProps('confirmPassword')}
-                    styles={{
-                      label: { color: '#1F2937', fontWeight: 600 },
-                    }}
-                  />
-
-                  <Button
-                    type="submit"
-                    fullWidth
-                    size="lg"
-                    radius="md"
-                    loading={loading}
-                    disabled={!form.isValid()}
-                    leftSection={<IconUserPlus size={20} />}
-                    style={{
-                      background: 'linear-gradient(135deg, #ff8c00 0%, #e67e00 100%)', // Softer orange
-                      border: 'none',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    {loading ? 'Creating Account...' : 'Create Account'}
-                  </Button>
+              <Alert icon={<IconInfoCircle size={20} />} color="blue" variant="light">
+                <Stack gap="xs">
+                  <Text size="sm" fw={600}>
+                    You'll be redirected to Asgardeo's login page
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    Click the "Sign Up" or "Create Account" link on the Asgardeo login page to register
+                  </Text>
+                  {autoRedirect && (
+                    <Text size="sm" c="dimmed">
+                      Auto-redirecting in {countdown} seconds...
+                    </Text>
+                  )}
                 </Stack>
-              </form>
+              </Alert>
 
-              <Divider my="md" />
+              <Timeline active={4} bulletSize={32} lineWidth={2} color="orange">
+                <Timeline.Item
+                  bullet={<IconUserPlus size={16} />}
+                  title={<Text fw={600}>Step 1: Create Account</Text>}
+                >
+                  <Text size="sm" c="dimmed">
+                    Fill in your details on Asgardeo's secure registration page
+                  </Text>
+                </Timeline.Item>
 
-              <Group justify="center">
+                <Timeline.Item
+                  bullet={<IconMail size={16} />}
+                  title={<Text fw={600}>Step 2: Verify Email</Text>}
+                >
+                  <Text size="sm" c="dimmed">
+                    Check your email and click the verification link
+                  </Text>
+                </Timeline.Item>
+
+                <Timeline.Item
+                  bullet={<IconLogin size={16} />}
+                  title={<Text fw={600}>Step 3: Login</Text>}
+                >
+                  <Text size="sm" c="dimmed">
+                    Return to this platform and click "Login" to access your account
+                  </Text>
+                </Timeline.Item>
+
+                <Timeline.Item
+                  bullet={<IconPencil size={16} />}
+                  title={<Text fw={600}>Step 4: Start Writing</Text>}
+                >
+                  <Text size="sm" c="dimmed">
+                    You'll be assigned the "Author" role and can start creating posts immediately
+                  </Text>
+                </Timeline.Item>
+              </Timeline>
+
+              <Card withBorder padding="md" radius="md" style={{ background: '#FFF7ED' }}>
+                <Text size="sm" fw={600} mb="xs">
+                  What you can do as an Author:
+                </Text>
+                <List size="sm" spacing="xs" withPadding>
+                  <List.Item>Create and publish blog posts</List.Item>
+                  <List.Item>Upload and manage media files</List.Item>
+                  <List.Item>Edit your own content</List.Item>
+                  <List.Item>Respond to comments on your posts</List.Item>
+                </List>
+              </Card>
+
+              <Stack gap="md">
+                <Button
+                  fullWidth
+                  size="lg"
+                  radius="md"
+                  leftSection={<IconUserPlus size={20} />}
+                  onClick={handleManualRedirect}
+                  style={{
+                    background: 'linear-gradient(135deg, #ff8c00 0%, #e67e00 100%)',
+                    border: 'none',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  {autoRedirect ? 'Continue to Registration Now' : 'Go to Registration'}
+                </Button>
+
+                {autoRedirect && (
+                  <Button
+                    fullWidth
+                    variant="subtle"
+                    size="md"
+                    onClick={handleCancelAutoRedirect}
+                    c="dimmed"
+                  >
+                    Cancel Auto-Redirect
+                  </Button>
+                )}
+              </Stack>
+
+              <Center>
                 <Text size="sm" c="dimmed">
                   Already have an account?{' '}
-                    <Anchor 
-                      component={Link} 
-                      href="/auth/login" 
-                      size="sm"
-                      c="wso2-orange.6"
-                      fw={600}
-                    >
-                      Sign In
-                    </Anchor>
+                  <Text
+                    component={Link}
+                    href="/"
+                    size="sm"
+                    c="orange"
+                    fw={600}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    Sign In
+                  </Text>
                 </Text>
-              </Group>
+              </Center>
             </Stack>
           </Paper>
         </Stack>

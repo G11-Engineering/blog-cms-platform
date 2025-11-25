@@ -60,4 +60,9 @@ export const authApi = {
     });
     return response.data;
   },
+
+  asgardeoLogin: async (idToken: string) => {
+    const response = await api.post('/api/auth/asgardeo/login', { idToken });
+    return response.data;
+  },
 };
