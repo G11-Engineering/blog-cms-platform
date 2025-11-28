@@ -93,6 +93,7 @@ export function mapAsgardeoGroupsToRole(groups: string[] = []): string {
  */
 export function extractUserInfo(payload: AsgardeoTokenPayload) {
   return {
+    asgardeoUserId: payload.sub,
     email: payload.email,
     firstName: payload.given_name || payload.email.split('@')[0],
     lastName: payload.family_name || '',

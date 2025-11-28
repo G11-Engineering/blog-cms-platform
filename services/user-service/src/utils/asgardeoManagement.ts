@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getDatabase } from '../config/database';
 
 /**
  * Asgardeo Management API Client
@@ -95,42 +96,6 @@ async function getManagementAccessToken(): Promise<string> {
   }
 }
 
-/**
- * Get Asgardeo user ID by email
- * Required to perform user management operations
- */
-async function getAsgardeoUserId(email: string): Promise<string | null> {
-  const config = getAsgardeoConfig();
-  const token = await getManagementAccessToken();
-
-  try {
-    const usersUrl = `${config.baseUrl}/scim2/Users`;
-
-    const response = await axios.get(usersUrl, {
-      params: {
-        filter: `userName eq ${email}`,
-      },
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/scim+json',
-      },
-    });
-
-    const users = response.data.Resources;
-
-    if (!users || users.length === 0) {
-      console.log(`⚠️ Asgardeo user not found: ${email}`);
-      return null;
-    }
-
-    return users[0].id;
-  } catch (error: any) {
-    const status = error.response?.status;
-    const message = error.response?.data?.detail || error.message;
-    console.error(`❌ Failed to get Asgardeo user ID (${status}):`, message);
-    return null;
-  }
-}
 
 /**
  * Lock an Asgardeo user account
@@ -141,24 +106,35 @@ async function getAsgardeoUserId(email: string): Promise<string | null> {
  */
 export async function lockAsgardeoUser(email: string): Promise<boolean> {
   try {
-    const userId = await getAsgardeoUserId(email);
-    if (!userId) {
-      console.warn(`⚠️ Cannot lock user - not found in Asgardeo: ${email}`);
+    // Get Asgardeo user ID from local database
+    const db = getDatabase();
+    const userResult = await db.query(
+      'SELECT asgardeo_user_id FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (userResult.rows.length === 0 || !userResult.rows[0].asgardeo_user_id) {
+      console.warn(`⚠️ Cannot lock user - No Asgardeo ID found for: ${email}`);
       return false;
     }
 
+    const asgardeoUserId = userResult.rows[0].asgardeo_user_id;
     const config = getAsgardeoConfig();
     const token = await getManagementAccessToken();
-    const userUrl = `${config.baseUrl}/scim2/Users/${userId}`;
+    const userUrl = `${config.baseUrl}/scim2/Users/${asgardeoUserId}`;
+
+    console.log(`🔒 Locking Asgardeo user: ${email} (ID: ${asgardeoUserId})`);
+    console.log(`📡 PATCH ${userUrl}`);
 
     await axios.patch(
       userUrl,
       {
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
         Operations: [
           {
             op: 'replace',
             value: {
-              'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
+              'urn:scim:wso2:schema': {
                 accountLocked: true,
               },
             },
@@ -173,7 +149,7 @@ export async function lockAsgardeoUser(email: string): Promise<boolean> {
       }
     );
 
-    console.log(`🔒 Locked Asgardeo account: ${email}`);
+    console.log(`✅ Locked Asgardeo account: ${email}`);
     return true;
   } catch (error: any) {
     const status = error.response?.status;
@@ -192,24 +168,35 @@ export async function lockAsgardeoUser(email: string): Promise<boolean> {
  */
 export async function unlockAsgardeoUser(email: string): Promise<boolean> {
   try {
-    const userId = await getAsgardeoUserId(email);
-    if (!userId) {
-      console.warn(`⚠️ Cannot unlock user - not found in Asgardeo: ${email}`);
+    // Get Asgardeo user ID from local database
+    const db = getDatabase();
+    const userResult = await db.query(
+      'SELECT asgardeo_user_id FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (userResult.rows.length === 0 || !userResult.rows[0].asgardeo_user_id) {
+      console.warn(`⚠️ Cannot unlock user - No Asgardeo ID found for: ${email}`);
       return false;
     }
 
+    const asgardeoUserId = userResult.rows[0].asgardeo_user_id;
     const config = getAsgardeoConfig();
     const token = await getManagementAccessToken();
-    const userUrl = `${config.baseUrl}/scim2/Users/${userId}`;
+    const userUrl = `${config.baseUrl}/scim2/Users/${asgardeoUserId}`;
+
+    console.log(`🔓 Unlocking Asgardeo user: ${email} (ID: ${asgardeoUserId})`);
+    console.log(`📡 PATCH ${userUrl}`);
 
     await axios.patch(
       userUrl,
       {
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
         Operations: [
           {
             op: 'replace',
             value: {
-              'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
+              'urn:scim:wso2:schema': {
                 accountLocked: false,
               },
             },
@@ -224,7 +211,7 @@ export async function unlockAsgardeoUser(email: string): Promise<boolean> {
       }
     );
 
-    console.log(`🔓 Unlocked Asgardeo account: ${email}`);
+    console.log(`✅ Unlocked Asgardeo account: ${email}`);
     return true;
   } catch (error: any) {
     const status = error.response?.status;
