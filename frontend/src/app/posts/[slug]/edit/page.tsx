@@ -24,6 +24,7 @@ export default function EditPostPage() {
   const updatePost = useUpdatePost();
   const { data: categories } = useCategories({ limit: 100 });
   const { data: tags } = useTags({ limit: 100 });
+  const [mediaSelectorOpened, { open: openMediaSelector, close: closeMediaSelector }] = useDisclosure(false);
   
   const slug = params.slug as string;
   
@@ -31,8 +32,9 @@ export default function EditPostPage() {
   const { data: postData, isLoading: postLoading } = useQuery({
     queryKey: ['post', slug],
     queryFn: async () => {
+      const apiUrl = process.env.NEXT_PUBLIC_CONTENT_SERVICE_URL || 'http://localhost:3002';
       // First, get all posts to find the post ID by slug
-      const postsResponse = await fetch('http://localhost:3002/api/posts?status=published');
+      const postsResponse = await fetch(`${apiUrl}/api/posts?status=published`);
       const postsData = await postsResponse.json();
       const foundPost = postsData.posts?.find((p: any) => p.slug === slug);
       
@@ -47,7 +49,7 @@ export default function EditPostPage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      const response = await fetch(`http://localhost:3002/api/posts/${foundPost.id}`, { headers });
+      const response = await fetch(`${apiUrl}/api/posts/${foundPost.id}`, { headers });
       if (!response.ok) {
         throw new Error('Failed to fetch post');
       }

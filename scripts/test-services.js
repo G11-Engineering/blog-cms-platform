@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 
+require('dotenv').config();
 const axios = require('axios');
 
 const services = [
-  { name: 'User Service', url: 'http://localhost:3001/health' },
-  { name: 'Content Service', url: 'http://localhost:3002/health' },
-  { name: 'Media Service', url: 'http://localhost:3003/health' },
-  { name: 'Category Service', url: 'http://localhost:3004/health' },
-  { name: 'Comment Service', url: 'http://localhost:3005/health' },
-  { name: 'Frontend', url: 'http://localhost:3000' },
+  { name: 'User Service', url: `${process.env.USER_SERVICE_URL || 'http://localhost:3001'}/health` },
+  { name: 'Content Service', url: `${process.env.CONTENT_SERVICE_URL || 'http://localhost:3002'}/health` },
+  { name: 'Media Service', url: `${process.env.MEDIA_SERVICE_URL || 'http://localhost:3003'}/health` },
+  { name: 'Category Service', url: `${process.env.CATEGORY_SERVICE_URL || 'http://localhost:3004'}/health` },
+  { name: 'Comment Service', url: `${process.env.COMMENT_SERVICE_URL || 'http://localhost:3005'}/health` },
+  { name: 'Frontend', url: process.env.FRONTEND_URL || 'http://localhost:3000' },
 ];
 
 async function testService(service) {

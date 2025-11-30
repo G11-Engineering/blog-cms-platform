@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
+require('dotenv').config();
 const axios = require('axios');
 
-const CATEGORY_SERVICE_URL = 'http://localhost:3004';
-const TAG_SERVICE_URL = 'http://localhost:3004';
-const CONTENT_SERVICE_URL = 'http://localhost:3002';
+const CATEGORY_SERVICE_URL = process.env.CATEGORY_SERVICE_URL || 'http://localhost:3004';
+const TAG_SERVICE_URL = process.env.CATEGORY_SERVICE_URL || 'http://localhost:3004';
+const CONTENT_SERVICE_URL = process.env.CONTENT_SERVICE_URL || 'http://localhost:3002';
 
 // Sample categories
 const categories = [

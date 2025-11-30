@@ -50,7 +50,8 @@ export default function UsersPage() {
       if (searchTerm) params.append('search', searchTerm);
       if (selectedRole) params.append('role', selectedRole);
 
-      const response = await axios.get(`http://localhost:3001/api/users?${params.toString()}`, { headers });
+      const apiUrl = process.env.NEXT_PUBLIC_USER_SERVICE_URL || 'http://localhost:3001';
+      const response = await axios.get(`${apiUrl}/api/users?${params.toString()}`, { headers });
       return response.data;
     },
     enabled: isAuthenticated && currentUser?.role === 'admin',
@@ -69,7 +70,8 @@ export default function UsersPage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await axios.put(`http://localhost:3001/api/users/${userId}`, data, { headers });
+      const apiUrl = process.env.NEXT_PUBLIC_USER_SERVICE_URL || 'http://localhost:3001';
+      const response = await axios.put(`${apiUrl}/api/users/${userId}`, data, { headers });
       return response.data;
     },
     onSuccess: () => {
@@ -100,7 +102,8 @@ export default function UsersPage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await axios.delete(`http://localhost:3001/api/users/${userId}`, { headers });
+      const apiUrl = process.env.NEXT_PUBLIC_USER_SERVICE_URL || 'http://localhost:3001';
+      const response = await axios.delete(`${apiUrl}/api/users/${userId}`, { headers });
       return response.data;
     },
     onSuccess: () => {

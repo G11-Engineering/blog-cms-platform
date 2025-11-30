@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
+require('dotenv').config();
 const axios = require('axios');
 
-const API_BASE_URL = 'http://localhost:3001';
-const CONTENT_API_URL = 'http://localhost:3002';
-const CATEGORY_API_URL = 'http://localhost:3004';
+const API_BASE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3001';
+const CONTENT_API_URL = process.env.CONTENT_SERVICE_URL || 'http://localhost:3002';
+const CATEGORY_API_URL = process.env.CATEGORY_SERVICE_URL || 'http://localhost:3004';
 
 async function createDemoUser() {
   try {
@@ -135,7 +136,8 @@ async function setupDemoData() {
     
     console.log('\n🎉 Demo data setup completed!');
     console.log('\n📋 Next steps:');
-    console.log('1. Visit http://localhost:3000');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    console.log(`1. Visit ${frontendUrl}`);
     console.log('2. Login with admin@cms.com / admin123');
     console.log('3. Or register a new account');
     console.log('4. Start creating content!');

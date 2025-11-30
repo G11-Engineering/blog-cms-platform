@@ -58,7 +58,8 @@ async function startServer() {
     
     app.listen(PORT, () => {
       console.log(`User Service running on port ${PORT}`);
-      console.log(`Health check: http://localhost:${PORT}/health`);
+      const serviceUrl = process.env.USER_SERVICE_URL || `http://localhost:${PORT}`;
+      console.log(`Health check: ${serviceUrl}/health`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

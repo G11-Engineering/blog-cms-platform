@@ -4,21 +4,23 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
+require('dotenv').config();
+
 const services = [
-  { name: 'User Service', url: 'http://localhost:3001/health', port: 3001 },
-  { name: 'Content Service', url: 'http://localhost:3002/health', port: 3002 },
-  { name: 'Media Service', url: 'http://localhost:3003/health', port: 3003 },
-  { name: 'Category Service', url: 'http://localhost:3004/health', port: 3004 },
-  { name: 'Comment Service', url: 'http://localhost:3005/health', port: 3005 },
-  { name: 'Frontend', url: 'http://localhost:3000', port: 3000 },
+  { name: 'User Service', url: `${process.env.USER_SERVICE_URL || 'http://localhost:3001'}/health`, port: parseInt(process.env.USER_SERVICE_PORT || '3001', 10) },
+  { name: 'Content Service', url: `${process.env.CONTENT_SERVICE_URL || 'http://localhost:3002'}/health`, port: parseInt(process.env.CONTENT_SERVICE_PORT || '3002', 10) },
+  { name: 'Media Service', url: `${process.env.MEDIA_SERVICE_URL || 'http://localhost:3003'}/health`, port: parseInt(process.env.MEDIA_SERVICE_PORT || '3003', 10) },
+  { name: 'Category Service', url: `${process.env.CATEGORY_SERVICE_URL || 'http://localhost:3004'}/health`, port: parseInt(process.env.CATEGORY_SERVICE_PORT || '3004', 10) },
+  { name: 'Comment Service', url: `${process.env.COMMENT_SERVICE_URL || 'http://localhost:3005'}/health`, port: parseInt(process.env.COMMENT_SERVICE_PORT || '3005', 10) },
+  { name: 'Frontend', url: process.env.FRONTEND_URL || 'http://localhost:3000', port: parseInt(process.env.FRONTEND_PORT || '3000', 10) },
 ];
 
 const databases = [
-  { name: 'User DB', port: 5433 },
-  { name: 'Content DB', port: 5434 },
-  { name: 'Media DB', port: 5435 },
-  { name: 'Category DB', port: 5436 },
-  { name: 'Comment DB', port: 5437 },
+  { name: 'User DB', port: parseInt(process.env.POSTGRES_USER_PORT || '5433', 10) },
+  { name: 'Content DB', port: parseInt(process.env.POSTGRES_CONTENT_PORT || '5434', 10) },
+  { name: 'Media DB', port: parseInt(process.env.POSTGRES_MEDIA_PORT || '5435', 10) },
+  { name: 'Category DB', port: parseInt(process.env.POSTGRES_CATEGORY_PORT || '5436', 10) },
+  { name: 'Comment DB', port: parseInt(process.env.POSTGRES_COMMENT_PORT || '5437', 10) },
 ];
 
 async function checkPort(port) {
@@ -41,7 +43,8 @@ async function checkPort(port) {
       resolve(false);
     });
     
-    socket.connect(port, 'localhost');
+    const host = process.env.DB_HOST || 'localhost';
+    socket.connect(port, host);
   });
 }
 

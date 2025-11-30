@@ -5,12 +5,12 @@ const nextConfig = {
     appDir: true,
   },
   images: {
-    domains: ['localhost'],
+    domains: process.env.NEXT_PUBLIC_IMAGE_DOMAIN ? [process.env.NEXT_PUBLIC_IMAGE_DOMAIN] : ['localhost'],
     remotePatterns: [
       {
         protocol: 'http',
-        hostname: 'localhost',
-        port: '3003',
+        hostname: process.env.NEXT_PUBLIC_IMAGE_DOMAIN || 'localhost',
+        port: process.env.NEXT_PUBLIC_IMAGE_PORT || '3003',
         pathname: '/uploads/**',
       },
     ],

@@ -4,11 +4,10 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
-dotenv.config({ path: './services/user-service/.env' });
-dotenv.config({ path: './services/media-service/.env' });
+require('dotenv').config();
 
-const USER_SERVICE_URL = process.env.NEXT_PUBLIC_USER_SERVICE_URL || 'http://localhost:3001';
-const MEDIA_SERVICE_URL = process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || 'http://localhost:3003';
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3001';
+const MEDIA_SERVICE_URL = process.env.MEDIA_SERVICE_URL || 'http://localhost:3003';
 
 const authApi = axios.create({
   baseURL: USER_SERVICE_URL,

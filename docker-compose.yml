@@ -7,9 +7,9 @@ services:
     environment:
       POSTGRES_DB: user_service
       POSTGRES_USER: user_service
-      POSTGRES_PASSWORD: user_password
+      POSTGRES_PASSWORD: ${POSTGRES_USER_PASSWORD:-user_password}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_USER_PORT:-5433}:5432"
     volumes:
       - postgres_user_data:/var/lib/postgresql/data
     networks:
@@ -21,9 +21,9 @@ services:
     environment:
       POSTGRES_DB: content_service
       POSTGRES_USER: content_service
-      POSTGRES_PASSWORD: content_password
+      POSTGRES_PASSWORD: ${POSTGRES_CONTENT_PASSWORD:-content_password}
     ports:
-      - "5434:5432"
+      - "${POSTGRES_CONTENT_PORT:-5434}:5432"
     volumes:
       - postgres_content_data:/var/lib/postgresql/data
     networks:
@@ -35,9 +35,9 @@ services:
     environment:
       POSTGRES_DB: media_service
       POSTGRES_USER: media_service
-      POSTGRES_PASSWORD: media_password
+      POSTGRES_PASSWORD: ${POSTGRES_MEDIA_PASSWORD:-media_password}
     ports:
-      - "5435:5432"
+      - "${POSTGRES_MEDIA_PORT:-5435}:5432"
     volumes:
       - postgres_media_data:/var/lib/postgresql/data
     networks:
@@ -49,9 +49,9 @@ services:
     environment:
       POSTGRES_DB: category_service
       POSTGRES_USER: category_service
-      POSTGRES_PASSWORD: category_password
+      POSTGRES_PASSWORD: ${POSTGRES_CATEGORY_PASSWORD:-category_password}
     ports:
-      - "5436:5432"
+      - "${POSTGRES_CATEGORY_PORT:-5436}:5432"
     volumes:
       - postgres_category_data:/var/lib/postgresql/data
     networks:
@@ -63,9 +63,9 @@ services:
     environment:
       POSTGRES_DB: comment_service
       POSTGRES_USER: comment_service
-      POSTGRES_PASSWORD: comment_password
+      POSTGRES_PASSWORD: ${POSTGRES_COMMENT_PASSWORD:-comment_password}
     ports:
-      - "5437:5432"
+      - "${POSTGRES_COMMENT_PORT:-5437}:5432"
     volumes:
       - postgres_comment_data:/var/lib/postgresql/data
     networks:
@@ -77,12 +77,17 @@ services:
       context: ./services/user-service
       dockerfile: Dockerfile.dev
     ports:
-      - "3001:3001"
+      - "${USER_SERVICE_PORT:-3001}:3001"
+    env_file:
+      - .env
+      - ./services/user-service/.env
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3001
       DATABASE_URL: postgresql://user_service:${POSTGRES_USER_PASSWORD:-user_password}@postgres-user:5432/user_service
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://localhost:3001}
       # Asgardeo SSO Configuration (Frontend Authentication)
       ASGARDEO_BASE_URL: https://api.asgardeo.io/t/${ASGARDEO_ORG_NAME:-}
       ASGARDEO_CLIENT_ID: ${ASGARDEO_CLIENT_ID:-}
@@ -103,13 +108,18 @@ services:
       context: ./services/content-service
       dockerfile: Dockerfile.dev
     ports:
-      - "3002:3002"
+      - "${CONTENT_SERVICE_PORT:-3002}:3002"
+    env_file:
+      - .env
+      - ./services/content-service/.env
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3002
-      DATABASE_URL: postgresql://content_service:content_password@postgres-content:5432/content_service
-      CATEGORY_SERVICE_URL: http://category-service:3004
-      JWT_SECRET: your-super-secret-jwt-key
+      DATABASE_URL: postgresql://content_service:${POSTGRES_CONTENT_PASSWORD:-content_password}@postgres-content:5432/content_service
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      CONTENT_SERVICE_URL: ${CONTENT_SERVICE_URL:-http://localhost:3002}
+      CATEGORY_SERVICE_URL: ${CATEGORY_SERVICE_URL:-http://category-service:3004}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
     depends_on:
       - postgres-content
       - category-service
@@ -127,11 +137,17 @@ services:
       context: ./services/media-service
       dockerfile: Dockerfile.dev
     ports:
-      - "3003:3003"
+      - "${MEDIA_SERVICE_PORT:-3003}:3003"
+    env_file:
+      - .env
+      - ./services/media-service/.env
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3003
-      DATABASE_URL: postgresql://media_service:media_password@postgres-media:5432/media_service
+      DATABASE_URL: postgresql://media_service:${POSTGRES_MEDIA_PASSWORD:-media_password}@postgres-media:5432/media_service
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      MEDIA_SERVICE_URL: ${MEDIA_SERVICE_URL:-http://localhost:3003}
+      UPLOAD_PATH: ${UPLOAD_PATH:-/app/uploads}
       # S3 Configuration (optional - if not set, will use local storage)
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
@@ -139,8 +155,6 @@ services:
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-blog-cms-media}
       AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT:-}
       AWS_S3_FOLDER: ${AWS_S3_FOLDER:-uploads}
-      UPLOAD_PATH: /app/uploads
-      MEDIA_SERVICE_URL: http://localhost:3003
       # S3 Configuration (uncomment and set if using S3)
       # S3_BUCKET: ${S3_BUCKET}
       # S3_REGION: ${S3_REGION}
@@ -172,11 +186,16 @@ services:
       context: ./services/category-service
       dockerfile: Dockerfile.dev
     ports:
-      - "3004:3004"
+      - "${CATEGORY_SERVICE_PORT:-3004}:3004"
+    env_file:
+      - .env
+      - ./services/category-service/.env
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3004
-      DATABASE_URL: postgresql://category_service:category_password@postgres-category:5432/category_service
+      DATABASE_URL: postgresql://category_service:${POSTGRES_CATEGORY_PASSWORD:-category_password}@postgres-category:5432/category_service
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      CATEGORY_SERVICE_URL: ${CATEGORY_SERVICE_URL:-http://localhost:3004}
     depends_on:
       - postgres-category
     networks:
@@ -193,11 +212,16 @@ services:
       context: ./services/comment-service
       dockerfile: Dockerfile.dev
     ports:
-      - "3005:3005"
+      - "${COMMENT_SERVICE_PORT:-3005}:3005"
+    env_file:
+      - .env
+      - ./services/comment-service/.env
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3005
-      DATABASE_URL: postgresql://comment_service:comment_password@postgres-comment:5432/comment_service
+      DATABASE_URL: postgresql://comment_service:${POSTGRES_COMMENT_PASSWORD:-comment_password}@postgres-comment:5432/comment_service
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      COMMENT_SERVICE_URL: ${COMMENT_SERVICE_URL:-http://localhost:3005}
     depends_on:
       - postgres-comment
     networks:
@@ -214,15 +238,25 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.dev
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
+    env_file:
+      - .env
+      - ./frontend/.env.local
     environment:
-      NODE_ENV: development
-      NEXT_PUBLIC_API_BASE_URL: http://localhost
-      NEXT_PUBLIC_USER_SERVICE_URL: http://localhost:3001
-      NEXT_PUBLIC_CONTENT_SERVICE_URL: http://localhost:3002
-      NEXT_PUBLIC_MEDIA_SERVICE_URL: http://localhost:3003
-      NEXT_PUBLIC_CATEGORY_SERVICE_URL: http://localhost:3004
-      NEXT_PUBLIC_COMMENT_SERVICE_URL: http://localhost:3005
+      NODE_ENV: ${NODE_ENV:-development}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost}
+      NEXT_PUBLIC_USER_SERVICE_URL: ${NEXT_PUBLIC_USER_SERVICE_URL:-http://localhost:3001}
+      NEXT_PUBLIC_CONTENT_SERVICE_URL: ${NEXT_PUBLIC_CONTENT_SERVICE_URL:-http://localhost:3002}
+      NEXT_PUBLIC_MEDIA_SERVICE_URL: ${NEXT_PUBLIC_MEDIA_SERVICE_URL:-http://localhost:3003}
+      NEXT_PUBLIC_CATEGORY_SERVICE_URL: ${NEXT_PUBLIC_CATEGORY_SERVICE_URL:-http://localhost:3004}
+      NEXT_PUBLIC_COMMENT_SERVICE_URL: ${NEXT_PUBLIC_COMMENT_SERVICE_URL:-http://localhost:3005}
+      NEXT_PUBLIC_IMAGE_DOMAIN: ${NEXT_PUBLIC_IMAGE_DOMAIN:-localhost}
+      NEXT_PUBLIC_IMAGE_PORT: ${NEXT_PUBLIC_IMAGE_PORT:-3003}
+      # Asgardeo Configuration
+      NEXT_PUBLIC_ASGARDEO_BASE_URL: ${NEXT_PUBLIC_ASGARDEO_BASE_URL:-}
+      NEXT_PUBLIC_ASGARDEO_CLIENT_ID: ${NEXT_PUBLIC_ASGARDEO_CLIENT_ID:-}
+      NEXT_PUBLIC_ASGARDEO_REDIRECT_URL: ${NEXT_PUBLIC_ASGARDEO_REDIRECT_URL:-http://localhost:3000}
+      NEXT_PUBLIC_ASGARDEO_SCOPE: ${NEXT_PUBLIC_ASGARDEO_SCOPE:-openid profile email}
     depends_on:
       - user-service
       - content-service

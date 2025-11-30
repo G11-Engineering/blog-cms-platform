@@ -46,7 +46,8 @@ export default function PostPage() {
   useEffect(() => {
     if (post?.id) {
       // Increment view count
-      fetch(`http://localhost:3002/api/posts/${post.id}/views`, {
+      const apiUrl = process.env.NEXT_PUBLIC_CONTENT_SERVICE_URL || 'http://localhost:3002';
+      fetch(`${apiUrl}/api/posts/${post.id}/views`, {
         method: 'POST',
       }).catch(console.error);
     }

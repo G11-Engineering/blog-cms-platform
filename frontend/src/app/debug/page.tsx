@@ -12,7 +12,8 @@ export default function DebugPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:3002/api/posts?status=published');
+      const apiUrl = process.env.NEXT_PUBLIC_CONTENT_SERVICE_URL || 'http://localhost:3002';
+      const response = await fetch(`${apiUrl}/api/posts?status=published`);
       const data = await response.json();
       console.log('Direct API call result:', data);
       setPosts(data);
