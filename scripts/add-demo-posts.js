@@ -23,8 +23,8 @@ async function addDemoPosts() {
   let adminToken = '';
   try {
     const loginRes = await authApi.post('/api/auth/login', {
-      email: 'admin@cms.com',
-      password: 'admin123',
+      email: process.env.ADMIN_EMAIL || 'admin@cms.com',
+      password: process.env.ADMIN_PASSWORD || 'admin123',
     });
     adminToken = loginRes.data.token;
     console.log('✅ Logged in as admin');

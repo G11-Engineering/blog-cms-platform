@@ -12,11 +12,11 @@ async function createDemoUser() {
     console.log('👤 Creating demo user...');
     
     const userData = {
-      email: 'demo@example.com',
-      username: 'demo',
-      password: 'demo123',
-      firstName: 'Demo',
-      lastName: 'User'
+      email: process.env.DEMO_EMAIL || 'demo@example.com',
+      username: process.env.DEMO_USERNAME || 'demo',
+      password: process.env.DEMO_PASSWORD || 'demo123',
+      firstName: process.env.DEMO_FIRST_NAME || 'Demo',
+      lastName: process.env.DEMO_LAST_NAME || 'User'
     };
     
     const response = await axios.post(`${API_BASE_URL}/api/auth/register`, userData);
@@ -138,7 +138,9 @@ async function setupDemoData() {
     console.log('\n📋 Next steps:');
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     console.log(`1. Visit ${frontendUrl}`);
-    console.log('2. Login with admin@cms.com / admin123');
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@cms.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    console.log(`2. Login with ${adminEmail} / ${adminPassword}`);
     console.log('3. Or register a new account');
     console.log('4. Start creating content!');
     

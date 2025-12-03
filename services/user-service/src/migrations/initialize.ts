@@ -26,28 +26,34 @@ const createDefaultAdminUser = async (): Promise<void> => {
   try {
     const db = getDatabase();
     
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@cms.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin';
+    const adminLastName = process.env.ADMIN_LAST_NAME || 'User';
+    
     // Check if admin user exists
-    const result = await db.query('SELECT id FROM users WHERE email = $1', ['admin@cms.com']);
+    const result = await db.query('SELECT id FROM users WHERE email = $1', [adminEmail]);
     
     if (result.rows.length === 0) {
       const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash('admin123', 12);
+      const hashedPassword = await bcrypt.hash(adminPassword, 12);
       
       await db.query(`
         INSERT INTO users (email, username, password_hash, first_name, last_name, role, is_active, email_verified)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `, [
-        'admin@cms.com',
-        'admin',
+        adminEmail,
+        adminUsername,
         hashedPassword,
-        'Admin',
-        'User',
+        adminFirstName,
+        adminLastName,
         'admin',
         true,
         true
       ]);
       
-      console.log('Default admin user created: admin@cms.com / admin123');
+      console.log(`Default admin user created: ${adminEmail} / ${adminPassword}`);
     }
   } catch (error) {
     console.error('Failed to create default admin user:', error);

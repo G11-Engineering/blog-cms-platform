@@ -5,8 +5,8 @@ services:
   postgres-user:
     image: postgres:15
     environment:
-      POSTGRES_DB: user_service
-      POSTGRES_USER: user_service
+      POSTGRES_DB: ${POSTGRES_USER_DB:-user_service}
+      POSTGRES_USER: ${POSTGRES_USER_USER:-user_service}
       POSTGRES_PASSWORD: ${POSTGRES_USER_PASSWORD:-user_password}
     ports:
       - "${POSTGRES_USER_PORT:-5433}:5432"
@@ -19,8 +19,8 @@ services:
   postgres-content:
     image: postgres:15
     environment:
-      POSTGRES_DB: content_service
-      POSTGRES_USER: content_service
+      POSTGRES_DB: ${POSTGRES_CONTENT_DB:-content_service}
+      POSTGRES_USER: ${POSTGRES_CONTENT_USER:-content_service}
       POSTGRES_PASSWORD: ${POSTGRES_CONTENT_PASSWORD:-content_password}
     ports:
       - "${POSTGRES_CONTENT_PORT:-5434}:5432"
@@ -33,8 +33,8 @@ services:
   postgres-media:
     image: postgres:15
     environment:
-      POSTGRES_DB: media_service
-      POSTGRES_USER: media_service
+      POSTGRES_DB: ${POSTGRES_MEDIA_DB:-media_service}
+      POSTGRES_USER: ${POSTGRES_MEDIA_USER:-media_service}
       POSTGRES_PASSWORD: ${POSTGRES_MEDIA_PASSWORD:-media_password}
     ports:
       - "${POSTGRES_MEDIA_PORT:-5435}:5432"
@@ -47,8 +47,8 @@ services:
   postgres-category:
     image: postgres:15
     environment:
-      POSTGRES_DB: category_service
-      POSTGRES_USER: category_service
+      POSTGRES_DB: ${POSTGRES_CATEGORY_DB:-category_service}
+      POSTGRES_USER: ${POSTGRES_CATEGORY_USER:-category_service}
       POSTGRES_PASSWORD: ${POSTGRES_CATEGORY_PASSWORD:-category_password}
     ports:
       - "${POSTGRES_CATEGORY_PORT:-5436}:5432"
@@ -61,8 +61,8 @@ services:
   postgres-comment:
     image: postgres:15
     environment:
-      POSTGRES_DB: comment_service
-      POSTGRES_USER: comment_service
+      POSTGRES_DB: ${POSTGRES_COMMENT_DB:-comment_service}
+      POSTGRES_USER: ${POSTGRES_COMMENT_USER:-comment_service}
       POSTGRES_PASSWORD: ${POSTGRES_COMMENT_PASSWORD:-comment_password}
     ports:
       - "${POSTGRES_COMMENT_PORT:-5437}:5432"
@@ -84,7 +84,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3001
-      DATABASE_URL: postgresql://user_service:${POSTGRES_USER_PASSWORD:-user_password}@postgres-user:5432/user_service
+      DATABASE_URL: postgresql://${POSTGRES_USER_USER:-user_service}:${POSTGRES_USER_PASSWORD:-user_password}@postgres-user:5432/${POSTGRES_USER_DB:-user_service}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       USER_SERVICE_URL: ${USER_SERVICE_URL:-http://localhost:3001}
@@ -115,7 +115,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3002
-      DATABASE_URL: postgresql://content_service:${POSTGRES_CONTENT_PASSWORD:-content_password}@postgres-content:5432/content_service
+      DATABASE_URL: postgresql://${POSTGRES_CONTENT_USER:-content_service}:${POSTGRES_CONTENT_PASSWORD:-content_password}@postgres-content:5432/${POSTGRES_CONTENT_DB:-content_service}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       CONTENT_SERVICE_URL: ${CONTENT_SERVICE_URL:-http://localhost:3002}
       CATEGORY_SERVICE_URL: ${CATEGORY_SERVICE_URL:-http://category-service:3004}
@@ -144,7 +144,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3003
-      DATABASE_URL: postgresql://media_service:${POSTGRES_MEDIA_PASSWORD:-media_password}@postgres-media:5432/media_service
+      DATABASE_URL: postgresql://${POSTGRES_MEDIA_USER:-media_service}:${POSTGRES_MEDIA_PASSWORD:-media_password}@postgres-media:5432/${POSTGRES_MEDIA_DB:-media_service}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       MEDIA_SERVICE_URL: ${MEDIA_SERVICE_URL:-http://localhost:3003}
       UPLOAD_PATH: ${UPLOAD_PATH:-/app/uploads}
@@ -193,7 +193,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3004
-      DATABASE_URL: postgresql://category_service:${POSTGRES_CATEGORY_PASSWORD:-category_password}@postgres-category:5432/category_service
+      DATABASE_URL: postgresql://${POSTGRES_CATEGORY_USER:-category_service}:${POSTGRES_CATEGORY_PASSWORD:-category_password}@postgres-category:5432/${POSTGRES_CATEGORY_DB:-category_service}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       CATEGORY_SERVICE_URL: ${CATEGORY_SERVICE_URL:-http://localhost:3004}
     depends_on:
@@ -219,7 +219,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3005
-      DATABASE_URL: postgresql://comment_service:${POSTGRES_COMMENT_PASSWORD:-comment_password}@postgres-comment:5432/comment_service
+      DATABASE_URL: postgresql://${POSTGRES_COMMENT_USER:-comment_service}:${POSTGRES_COMMENT_PASSWORD:-comment_password}@postgres-comment:5432/${POSTGRES_COMMENT_DB:-comment_service}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       COMMENT_SERVICE_URL: ${COMMENT_SERVICE_URL:-http://localhost:3005}
     depends_on:
