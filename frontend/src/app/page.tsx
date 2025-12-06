@@ -3,8 +3,10 @@
 import { Container, Grid, Stack, Title, Text, Button, Group, Card, Box, Center, ThemeIcon, Divider, Badge } from '@mantine/core';
 import { IconBookmark, IconUser, IconTrendingUp, IconClock, IconTag, IconCategory } from '@tabler/icons-react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomePage() {
+  const { asgardeoSignIn } = useAuth();
   return (
     <Container size="xl" py="xl">
       <Stack gap="xl">
@@ -44,9 +46,8 @@ export default function HomePage() {
             >
               Explore Posts
             </Button>
-            <Button 
-              component={Link} 
-              href="/auth/register" 
+            <Button
+              onClick={asgardeoSignIn}
               size="lg"
               variant="outline"
               leftSection={<IconUser size={20} />}
@@ -285,9 +286,8 @@ export default function HomePage() {
               Join the WSO2 community and share your technical insights, experiences, and innovative solutions.
             </Text>
             <Group>
-              <Button 
-                component={Link} 
-                href="/auth/register" 
+              <Button
+                onClick={asgardeoSignIn}
                 size="lg"
                 variant="white"
                 color="wso2-orange"
@@ -300,9 +300,8 @@ export default function HomePage() {
               >
                 Start Writing
               </Button>
-              <Button 
-                component={Link} 
-                href="/auth/login" 
+              <Button
+                onClick={asgardeoSignIn}
                 size="lg"
                 variant="outline"
                 c="white"

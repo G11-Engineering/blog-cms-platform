@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     bio TEXT,
     is_active BOOLEAN DEFAULT true,
     email_verified BOOLEAN DEFAULT false,
+    asgardeo_user_id VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_asgardeo_user_id ON users(asgardeo_user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);

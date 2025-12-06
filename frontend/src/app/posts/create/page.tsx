@@ -18,7 +18,7 @@ import { Image } from '@mantine/core';
 
 export default function CreatePostPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, asgardeoSignIn } = useAuth();
   const createPost = useCreatePost();
   const { data: categories } = useCategories({ limit: 100 });
   const { data: tags } = useTags({ limit: 100 });
@@ -169,16 +169,11 @@ export default function CreatePostPage() {
           <Stack align="center" gap="md">
             <Title order={2}>Login Required</Title>
             <Text c="dimmed" ta="center">
-              You need to be logged in to create posts. Please log in with your account or use the demo credentials below.
+              You need to be logged in to create posts.
             </Text>
-            <Group>
-              <Button component="a" href="/auth/login" variant="filled" size="lg">
-                Login Now
-              </Button>
-              <Button component="a" href="/auth/register" variant="outline" size="lg">
-                Sign Up
-              </Button>
-            </Group>
+            <Button onClick={asgardeoSignIn} variant="filled" size="lg">
+              Login Now
+            </Button>
             <Card withBorder p="md" bg="blue.0" style={{ width: '100%' }}>
               <Stack gap="xs">
                 <Text size="sm" fw={500} ta="center">Quick Demo Access</Text>
@@ -186,11 +181,11 @@ export default function CreatePostPage() {
                   Email: admin@cms.com<br/>
                   Password: admin123
                 </Text>
-                <Button 
-                  size="sm" 
-                  variant="light" 
+                <Button
+                  size="sm"
+                  variant="light"
                   fullWidth
-                  onClick={() => window.location.href = '/auth/login'}
+                  onClick={asgardeoSignIn}
                 >
                   Use Demo Credentials
                 </Button>
