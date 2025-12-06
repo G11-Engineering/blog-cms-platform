@@ -107,14 +107,15 @@ npm run dev:frontend  # Frontend (port 3000)
 
 This platform uses **WSO2 Asgardeo** for secure authentication (2FA) while managing roles locally.
 
-### User Registration
+### User Registration & Login
 
-New users can register via Asgardeo SSO:
+Authentication is handled entirely through Asgardeo SSO:
 
-1. Click **"Sign Up"** in the navigation bar
-2. Fill in your details via Asgardeo's secure registration
-3. Verify your email
-4. Login with Asgardeo SSO
+1. Click **"Login"** anywhere in the application
+2. You'll be redirected to Asgardeo's secure authentication
+3. New users can register directly on Asgardeo during the login flow
+4. Verify your email and complete authentication
+5. You'll be redirected back to the application
 
 All new users receive the **"reader"** role by default. Admins can upgrade roles via the admin panel.
 
@@ -218,8 +219,9 @@ Each microservice has its own PostgreSQL database:
 Each service exposes REST APIs:
 
 #### User Service APIs
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
+- `POST /api/auth/asgardeo/login` - Asgardeo token exchange
+- `POST /api/auth/logout` - User logout
+- `POST /api/auth/refresh` - Refresh JWT token
 - `GET /api/users/profile` - Get user profile
 - `PUT /api/users/profile` - Update profile
 
@@ -262,10 +264,9 @@ DATABASE_URL=postgresql://user_service:user_password@localhost:5433/user_service
 JWT_SECRET=your-super-secret-jwt-key
 JWT_EXPIRES_IN=7d
 
-# Asgardeo SSO Configuration
+# Asgardeo Configuration (for token validation)
 ASGARDEO_BASE_URL=https://api.asgardeo.io/t/your-org-name
 ASGARDEO_CLIENT_ID=your-frontend-client-id
-ASGARDEO_CLIENT_SECRET=your-frontend-client-secret
 ASGARDEO_ORG_NAME=your-org-name
 
 # Asgardeo M2M Configuration (User Status Sync)
@@ -311,11 +312,11 @@ NEXT_PUBLIC_MEDIA_SERVICE_URL=http://localhost:3003
 NEXT_PUBLIC_CATEGORY_SERVICE_URL=http://localhost:3004
 NEXT_PUBLIC_COMMENT_SERVICE_URL=http://localhost:3005
 
-# Asgardeo Configuration
+# Asgardeo SSO Configuration
 NEXT_PUBLIC_ASGARDEO_BASE_URL=https://api.asgardeo.io/t/your-org-name
 NEXT_PUBLIC_ASGARDEO_CLIENT_ID=your-frontend-client-id
 NEXT_PUBLIC_ASGARDEO_REDIRECT_URL=http://localhost:3000
-NEXT_PUBLIC_ASGARDEO_SCOPE=openid profile email
+NEXT_PUBLIC_ASGARDEO_SCOPE=openid profile email groups
 ```
 
 ### Asgardeo Configuration
@@ -328,12 +329,12 @@ Quick overview:
    - Sign up at https://console.asgardeo.io/
    - Create a new organization
 
-2. **Create Frontend Application (Traditional Web Application)**
+2. **Create Frontend Application (Single Page Application)**
    - Navigate to Applications → New Application
-   - Select "Traditional Web Application"
-   - Configure authorized redirect URLs
+   - Select "Single Page Application"
+   - Configure authorized redirect URLs (e.g., http://localhost:3000)
    - Enable self-registration in "Login Flow" tab
-   - Note the Client ID and Client Secret
+   - Note the Client ID
 
 3. **Create M2M Application (for User Sync)**
    - Navigate to Applications → New Application
@@ -347,7 +348,10 @@ Quick overview:
    - Fill in your Asgardeo credentials
    - See [SETUP.md](SETUP.md) for detailed instructions
 
-**Important:** Asgardeo is used ONLY for 2FA authentication. Roles are managed locally in the admin panel, NOT via Asgardeo groups
+**Important:**
+- Asgardeo is used ONLY for 2FA authentication.
+- Roles are managed locally in the admin panel, NOT via Asgardeo groups.
+- The frontend initiates all OAuth flows directly - no backend OAuth endpoints needed.
 
 ## 🧪 Testing
 

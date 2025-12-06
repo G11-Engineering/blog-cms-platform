@@ -18,22 +18,12 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
   asgardeoSignIn: () => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isEditor: boolean;
   isAuthor: boolean;
-}
-
-interface RegisterData {
-  email: string;
-  username: string;
-  password: string;
-  firstName: string;
-  lastName: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -136,50 +126,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     handleAsgardeoAuth();
   }, [asgardeoState.isAuthenticated, user, processingAuth, getIDToken]);
 
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await authApi.login(email, password);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', response.token);
-      }
-      setUser(response.user);
-      notifications.show({
-        title: 'Success',
-        message: 'Logged in successfully',
-        color: 'green',
-      });
-    } catch (error: any) {
-      notifications.show({
-        title: 'Error',
-        message: error.response?.data?.error?.message || 'Login failed',
-        color: 'red',
-      });
-      throw error;
-    }
-  };
-
-  const register = async (data: RegisterData) => {
-    try {
-      const response = await authApi.register(data);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', response.token);
-      }
-      setUser(response.user);
-      notifications.show({
-        title: 'Success',
-        message: 'Account created successfully',
-        color: 'green',
-      });
-    } catch (error: any) {
-      notifications.show({
-        title: 'Error',
-        message: error.response?.data?.error?.message || 'Registration failed',
-        color: 'red',
-      });
-      throw error;
-    }
-  };
-
   const handleAsgardeoSignIn = async () => {
     try {
       await asgardeoSignIn();
@@ -238,8 +184,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         loading,
-        login,
-        register,
         asgardeoSignIn: handleAsgardeoSignIn,
         logout,
         isAuthenticated,
