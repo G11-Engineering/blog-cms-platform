@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
 export function Navigation() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, isAuthor, asgardeoSignIn } = useAuth();
 
   return (
     <Box
@@ -99,21 +99,23 @@ export function Navigation() {
             
             {isAuthenticated ? (
               <Group>
-                <Button 
-                  component={Link} 
-                  href="/posts/create" 
-                  variant="white"
-                  color="wso2-orange"
-                  style={{
-                    background: 'white',
-                    color: '#FF7300',
-                    fontWeight: 600,
-                  }}
-                >
-                  Write Post
-                </Button>
-                
-                <Button 
+                {isAuthor && (
+                  <Button
+                    component={Link}
+                    href="/posts/create"
+                    variant="white"
+                    color="wso2-orange"
+                    style={{
+                      background: 'white',
+                      color: '#FF7300',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Write Post
+                  </Button>
+                )}
+
+                <Button
                   variant="outline"
                   c="white"
                   onClick={logout}
@@ -127,34 +129,18 @@ export function Navigation() {
                 </Button>
               </Group>
             ) : (
-              <Group>
-                <Button 
-                  component={Link}
-                  href="/auth/login"
-                  variant="outline"
-                  c="white"
-                  style={{
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
-                    color: 'white',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                  }}
-                >
-                  Login
-                </Button>
-                <Button 
-                  component={Link} 
-                  href="/auth/register" 
-                  variant="white"
-                  color="wso2-orange"
-                  style={{
-                    background: 'white',
-                    color: '#FF7300',
-                    fontWeight: 600,
-                  }}
-                >
-                  Sign Up
-                </Button>
-              </Group>
+              <Button
+                onClick={asgardeoSignIn}
+                variant="outline"
+                c="white"
+                style={{
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  color: 'white',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                }}
+              >
+                Login
+              </Button>
             )}
           </Group>
         </Group>
