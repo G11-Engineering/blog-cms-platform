@@ -32,14 +32,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Intercept Asgardeo authentication state
   const { state: asgardeoState, signIn: asgardeoSignIn, signOut: asgardeoSignOut, getIDToken } = useAsgardeoAuth();
 
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize user state synchronously from localStorage for instant UI rendering
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          return JSON.parse(storedUser);
+        } catch (error) {
+          console.error('Failed to parse stored user:', error);
+        }
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
   const [processingAuth, setProcessingAuth] = useState(false);
   const router = useRouter();
 
-  // Load user from localStorage on mount
+  // Verify token and refresh user data from backend
   useEffect(() => {
-    const loadUser = async () => {
+    const verifyUser = async () => {
       // Only access localStorage in browser environment
       if (typeof window === 'undefined') {
         setLoading(false);
@@ -47,32 +60,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const token = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
 
-      if (token && storedUser) {
+      if (token) {
         try {
-          // First set user from localStorage immediately for faster UI update
-          setUser(JSON.parse(storedUser));
-          setLoading(false);
-
-          // Then verify token and get fresh data from backend
+          // Verify token and get fresh data from backend
           const userData = await authApi.getProfile();
           setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
         } catch (error) {
-          console.error('Failed to load user profile:', error);
+          console.error('Failed to verify user token:', error);
           if (typeof window !== 'undefined') {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
           }
           setUser(null);
-          setLoading(false);
         }
-      } else {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
-    loadUser();
+    verifyUser();
   }, []);
 
   // Automatically handle Asgardeo authentication completion
